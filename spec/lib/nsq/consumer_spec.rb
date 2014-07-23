@@ -25,7 +25,7 @@ describe Nsq::Consumer do
 
     describe '#on_terminate' do
       it 'closes the connection' do
-        connection = @consumer.instance_variable_get(:@connection)
+        connection = @consumer.instance_variable_get(:@connections).values.first
         # Once from our call, once from the #terminate in our `after` block
         expect(connection.wrapped_object).to receive(:close).exactly(2)
         @consumer.send :on_terminate
