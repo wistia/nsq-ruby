@@ -69,8 +69,8 @@ module Nsq
     end
 
 
-    def req(message_id)
-      write "REQ #{message_id}\n"
+    def req(message_id, timeout)
+      write "REQ #{message_id} #{timeout}\n"
       decrement_in_flight
     end
 
