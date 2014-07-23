@@ -13,10 +13,10 @@ module Nsq
     finalizer :on_terminate
 
     def initialize(opts = {})
-      if opts[:lookupd]
-        @lookupds = [opts[:lookupd]].flatten
+      if opts[:nsqlookupd]
+        @nsqlookupds = [opts[:nsqlookupd]].flatten
       else
-        @lookupds = []
+        @nsqlookupds = []
       end
 
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
@@ -26,8 +26,8 @@ module Nsq
       @messages = Queue.new
       @connections = {}
 
-      if !@lookupds.empty?
-        @discovery = Discovery.new(@lookupds)
+      if !@nsqlookupds.empty?
+        @discovery = Discovery.new(@nsqlookupds)
         discover
       else
         # normally, we find nsqd instances to connect to via nsqlookupd(s)

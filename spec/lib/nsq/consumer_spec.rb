@@ -62,7 +62,7 @@ describe Nsq::Consumer do
       @consumer = Nsq::Consumer.new(
         topic: @topic,
         channel: 'some-channel',
-        lookupd: "#{lookupd.host}:#{lookupd.http_port}",
+        nsqlookupd: "#{lookupd.host}:#{lookupd.http_port}",
         max_in_flight: 1
       )
     end
