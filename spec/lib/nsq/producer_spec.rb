@@ -33,7 +33,7 @@ describe Nsq::Producer do
     end
   end
 
-  context '#write' do
+  describe '#write' do
     it 'can queue a message' do
       producer.write('some-message')
       expect(message_count).to eq(1)

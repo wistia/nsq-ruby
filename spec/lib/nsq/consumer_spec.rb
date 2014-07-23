@@ -25,7 +25,7 @@ describe Nsq::Consumer do
     )
   end
 
-  context '#messages' do
+  describe '#messages' do
     it 'can pop off a message' do
       @nsqd.pub(topic, 'some-message')
       msg = consumer.messages.pop
