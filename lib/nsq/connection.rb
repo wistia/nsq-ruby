@@ -12,10 +12,6 @@ module Nsq
       write '  V2'
     end
 
-    trap_exit :actor_died
-    def actor_died(actor, reason)
-      p "Oh no! #{actor.inspect} has died because of a #{reason.class}"
-    end
 
     def listen_for_messages(queue)
       loop do
@@ -57,12 +53,12 @@ module Nsq
 
 
     def cls
-      write "CLS\n"
+      write 'CLS\n'
     end
 
 
     def nop
-      write "NOP\n"
+      write 'NOP\n'
     end
 
 
