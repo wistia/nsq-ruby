@@ -1,5 +1,9 @@
 require 'celluloid/io'
 
+require_relative 'frames/error'
+require_relative 'frames/message'
+require_relative 'frames/response'
+
 module Nsq
   class Connection
 
@@ -95,9 +99,23 @@ module Nsq
         size, type = buffer.unpack('l>l>')
         size -= 4 # we want the size of the data part and type already took up 4 bytes
         data = @socket.read(size)
-        Frame.build(type, data, self)
+        frame_class = frame_class_for_type(type)
+        frame_class.new(data, self)
       end
     end
 
+
+    def frame_class_for_type(type)
+      case type
+      when 0
+        Response
+      when 1
+        Error
+      when 2
+        Message
+      else
+        raise "Bad frame type specified: #{type}"
+      end
+    end
   end
 end
