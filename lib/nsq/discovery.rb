@@ -44,7 +44,7 @@ module Nsq
           []
         end
       rescue => e
-        puts "Lookup exception encountered: #{e.class.name} - #{e}"
+        #TODO: log this!
         []
       end
     end

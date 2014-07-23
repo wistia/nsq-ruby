@@ -13,7 +13,11 @@ module Nsq
     finalizer :on_terminate
 
     def initialize(opts = {})
-      @lookupds = opts[:lookupds] || []
+      if opts[:lookupd]
+        @lookupds = [opts[:lookupd]].flatten
+      else
+        @lookupds = []
+      end
 
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
       @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
@@ -50,6 +54,8 @@ module Nsq
           add_connection(nsqd)
         end
       end
+
+      after(1) { discover }
     end
 
 
@@ -71,7 +77,9 @@ module Nsq
 
     def redistribute_ready
       @connections.values.each do |connection|
-        connection.max_in_flight = (@max_in_flight / @connections.length).ceil
+        # Be conservative, but don't set a connection's max_in_flight below 1
+        max_per_connection = [@max_in_flight / @connections.length, 1].max
+        connection.max_in_flight = max_per_connection
       end
     end
 
