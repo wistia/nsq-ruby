@@ -8,7 +8,7 @@ module Nsq
 
     def initialize(data, connection)
       super
-      @timestamp, @attempts, @id, @body = @data.unpack("Q>s>a16a*")
+      @timestamp, @attempts, @id, @body = @data.unpack('Q>s>a16a*')
     end
 
     def finish
