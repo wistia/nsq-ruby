@@ -1,3 +1,7 @@
+autoload :Error, 'error'
+autoload :Message, 'message'
+autoload :Response, 'response'
+
 module Nsq
   class Frame
 
@@ -9,6 +13,8 @@ module Nsq
       @connection = connection
     end
 
+    # [RG] Not sure how I feel about Frame needing to know about all of its
+    # subclasses. How do you feel about overloading this in inheriting classes?
     def self.build(type, data, connection)
       case type
       when 0

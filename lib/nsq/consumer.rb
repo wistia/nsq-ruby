@@ -1,3 +1,5 @@
+require_relative 'connection'
+
 module Nsq
   class Consumer
 
