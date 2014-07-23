@@ -19,8 +19,7 @@ describe Nsq::Consumer do
     Nsq::Consumer.new({
       topic: @topic,
       channel: 'some-channel',
-      host: @nsqd.host,
-      port: @nsqd.tcp_port,
+      nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}",
       max_in_flight: 1
     }.merge(opts))
   end

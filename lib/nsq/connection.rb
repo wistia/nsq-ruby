@@ -10,7 +10,7 @@ module Nsq
     include Celluloid::IO
 
     attr_reader :socket
-    attr_reader :max_in_flight
+    attr_accessor :max_in_flight
     attr_reader :presumed_in_flight
 
     RESPONSE_HEARTBEAT = '_heartbeat_'
