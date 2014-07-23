@@ -28,6 +28,7 @@ Connection
 - If you req, touch, or fin a message that's already timed out -- it should explode? maybe raise an error.
 - identify and feature negotiation
 - rip out celluloid???
+- add logging
 
 
 - gotchas
