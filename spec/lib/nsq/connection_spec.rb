@@ -21,5 +21,12 @@ describe Nsq::Connection do
         ).to be_truthy
       end
     end
+    it "raises an error if invalid type > #{MAX_VALID_TYPE} specified" do
+      without_celluloid_logging do
+        expect {
+          @connection.send(:frame_class_for_type, 3)
+        }.to raise_error(RuntimeError)
+      end
+    end
   end
 end

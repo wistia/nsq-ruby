@@ -13,3 +13,11 @@ Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 RSpec.configure do |config|
 
 end
+
+require 'celluloid'
+def without_celluloid_logging(&block)
+  logger = Celluloid.logger
+  Celluloid.logger = nil
+  yield
+  Celluloid.logger = logger
+end
