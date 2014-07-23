@@ -11,11 +11,13 @@ describe Nsq::Connection do
   end
 
   describe '#frame_class_for_type' do
-    FRAME_CLASSES = [Nsq::Error, Nsq::Message, Nsq::Response]
-    it 'returns a frame object for types 0-2' do
-      (0..2).each do |type|
+    MAX_VALID_TYPE = described_class::FRAME_CLASSES.length - 1
+    it "returns a frame class for types 0-#{MAX_VALID_TYPE}" do
+      (0..MAX_VALID_TYPE).each do |type|
         expect(
-          FRAME_CLASSES.include?(@connection.send(:frame_class_for_type, type))
+          described_class::FRAME_CLASSES.include?(
+            @connection.send(:frame_class_for_type, type)
+          )
         ).to be_truthy
       end
     end

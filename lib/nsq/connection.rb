@@ -104,18 +104,10 @@ module Nsq
       end
     end
 
-
+    FRAME_CLASSES = [Response, Error, Message]
     def frame_class_for_type(type)
-      case type
-      when 0
-        Response
-      when 1
-        Error
-      when 2
-        Message
-      else
-        raise "Bad frame type specified: #{type}"
-      end
+      raise "Bad frame type specified: #{type}" if type > FRAME_CLASSES.length
+      [Response, Error, Message][type]
     end
   end
 end
