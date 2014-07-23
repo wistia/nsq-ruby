@@ -25,6 +25,17 @@ describe Nsq::Consumer do
     }.merge(opts))
   end
 
+
+  describe '#on_terminate' do
+    it 'closes the connection' do
+      connection = @consumer.instance_variable_get(:@connection)
+      lambda { # Wrap in lambda to test outside of our after-block cleanup
+        expect(connection.wrapped_object).to receive(:close)
+        @consumer.send :on_terminate
+      }
+    end
+  end
+
   describe '#messages' do
     it 'can pop off a message' do
       @nsqd.pub(@topic, 'some-message')

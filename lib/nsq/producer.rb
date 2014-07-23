@@ -7,6 +7,10 @@ module Nsq
     attr_reader :port
     attr_reader :topic
 
+    include Celluloid
+    finalizer :on_terminate
+
+
     def initialize(opts = {})
       @host = opts[:host] || '127.0.0.1'
       @port = opts[:port] || 4150
@@ -14,6 +18,7 @@ module Nsq
 
       @connection = Connection.new(@host, @port)
     end
+
 
     def write(*raw_messages)
       # stringify them
@@ -26,5 +31,10 @@ module Nsq
       end
     end
 
+
+    private
+    def on_terminate
+      @connection.async.close
+    end
   end
 end

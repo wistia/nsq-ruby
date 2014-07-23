@@ -11,6 +11,14 @@ describe Nsq::Connection do
   end
 
 
+  describe '#close' do
+    it 'tells nsqd to close the connection' do
+      expect(@connection.wrapped_object).to receive(:cls)
+      @connection.close
+    end
+  end
+
+
   describe 'private methods' do
     describe '#frame_class_for_type' do
       MAX_VALID_TYPE = described_class::FRAME_CLASSES.length - 1

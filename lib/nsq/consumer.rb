@@ -30,6 +30,7 @@ module Nsq
     private
     def on_terminate
       @connection.async.stop_listening_for_messages
+      @connection.async.close
     end
   end
 end

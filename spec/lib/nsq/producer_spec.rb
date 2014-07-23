@@ -14,8 +14,10 @@ describe Nsq::Producer do
     )
   end
   after do
+    @producer.terminate
     @cluster.destroy
   end
+
 
   def message_count
     topics_info = JSON.parse(@nsqd.stats.body)['data']['topics']
@@ -26,6 +28,18 @@ describe Nsq::Producer do
       0
     end
   end
+
+
+  describe '#on_terminate' do
+    it 'closes the connection' do
+      connection = @producer.instance_variable_get(:@connection)
+      lambda { # Wrap in lambda to test outside of our after-block cleanup
+        expect(connection.wrapped_object).to receive(:close)
+        @producer.send :on_terminate
+      }
+    end
+  end
+
 
   describe '#write' do
     it 'can queue a message' do

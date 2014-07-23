@@ -104,6 +104,11 @@ module Nsq
     end
 
 
+    def close
+      cls
+    end
+
+
     private
     def write(raw)
       @socket.write(raw)
