@@ -1,0 +1,2 @@
+class Nsq::Discovery
+end
