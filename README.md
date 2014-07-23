@@ -26,7 +26,6 @@ Connection
 
 - lookupd discovery
 - connections dropping and exploding in weird ways
-- heartbeat handling
 - actually issue CLS to connections in a nice way
 - If you req, touch, or fin a message that's already timed out -- it should explode? maybe raise an error.
 - identify and feature negotiation

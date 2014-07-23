@@ -13,6 +13,9 @@ module Nsq
     attr_reader :max_in_flight
     attr_reader :presumed_in_flight
 
+    RESPONSE_HEARTBEAT = '_heartbeat_'
+    RESPONSE_OK = 'OK'
+
     def initialize(host, port)
       @presumed_in_flight = 0
       @max_in_flight = 0
@@ -34,7 +37,7 @@ module Nsq
       loop do
         frame = receive_frame
         if frame.is_a?(Response)
-          puts "response: #{frame.data}"
+          handle_response(frame)
         elsif frame.is_a?(Error)
           puts "error: #{frame.data}"
         elsif frame.is_a?(Message)
@@ -104,6 +107,16 @@ module Nsq
     private
     def write(raw)
       @socket.write(raw)
+    end
+
+
+    def handle_response(frame)
+      if frame.data == RESPONSE_HEARTBEAT
+        nop
+      elsif frame.data == RESPONSE_OK
+      else
+        raise "Received response we don't know how to handle: #{frame.data}"
+      end
     end
 
 
