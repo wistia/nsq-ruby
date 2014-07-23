@@ -9,6 +9,7 @@ module Nsq
     attr_reader :messages
 
     include Celluloid
+    finalizer :on_terminate
 
     def initialize(opts = {})
       @host = opts[:host] || '127.0.0.1'
@@ -27,6 +28,11 @@ module Nsq
       # listen for messages
       @connection.async.listen_for_messages(@messages)
     end
+  end
 
+
+  private
+  def on_terminate
+    @connection.async.stop_listening_for_messages
   end
 end

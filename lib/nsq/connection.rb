@@ -14,16 +14,24 @@ module Nsq
 
 
     def listen_for_messages(queue)
-      loop do
-        frame = receive_frame
-        if frame.is_a?(Response)
-          puts "response: #{frame.data}"
-        elsif frame.is_a?(Error)
-          puts "error: #{frame.data}"
-        elsif frame.is_a?(Message)
-          queue.push(frame)
+      @listener_thread ||= Thread.new do
+        loop do
+          frame = receive_frame
+          if frame.is_a?(Response)
+            puts "response: #{frame.data}"
+          elsif frame.is_a?(Error)
+            puts "error: #{frame.data}"
+          elsif frame.is_a?(Message)
+            queue.push(frame)
+          end
         end
       end
+    end
+
+
+    def stop_listening_for_messages
+      @listener_thread.exit if @listener_thread
+      @listener_thread = nil
     end
 
 
