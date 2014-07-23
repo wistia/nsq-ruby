@@ -9,13 +9,12 @@ rescue Bundler::BundlerError => e
 end
 
 require 'rake'
-# require 'bundler/gem_tasks'
 
 ###########
 # Jeweler #
 ###########
 require 'jeweler'
-require_relative 'lib/nsq'
+require_relative 'lib/version'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://guides.rubygems.org/specification-reference/ for more options
   gem.name = "nsq"
@@ -39,13 +38,6 @@ require 'rspec/core/rake_task'
 RSpec::Core::RakeTask.new(:spec) do |spec|
   spec.pattern = FileList['spec/**/*_spec.rb']
 end
-
-desc "Code coverage detail"
-task :simplecov do
-  ENV['COVERAGE'] = "true"
-  Rake::Task['spec'].execute
-end
-task :default => :spec
 
 ########
 # RDoc #
