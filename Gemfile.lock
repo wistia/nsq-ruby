@@ -77,5 +77,4 @@ DEPENDENCIES
   celluloid-io
   jeweler (~> 2.0.1)
   nsq-cluster
-  rdoc (~> 3.12)
   rspec
