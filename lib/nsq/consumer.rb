@@ -8,6 +8,7 @@ module Nsq
     attr_reader :topic
     attr_reader :messages
 
+    # We include Celluloid for its finalizer logic - consider removing
     include Celluloid
     finalizer :on_terminate
 
@@ -28,11 +29,11 @@ module Nsq
       # listen for messages
       @connection.async.listen_for_messages(@messages)
     end
-  end
 
 
-  private
-  def on_terminate
-    @connection.async.stop_listening_for_messages
+    private
+    def on_terminate
+      @connection.async.stop_listening_for_messages
+    end
   end
 end
