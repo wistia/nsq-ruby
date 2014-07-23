@@ -2,8 +2,7 @@ require_relative '../../spec_helper'
 
 describe Nsq::Discovery do
   before(:all) do
-    @nsqd_count = 4
-    @cluster = NsqCluster.new(nsqd_count: @nsqd_count, nsqlookupd_count: 2)
+    @cluster = NsqCluster.new(nsqd_count: 4, nsqlookupd_count: 2)
     @cluster.block_until_running
     @topic = 'some-topic'
 
@@ -11,6 +10,8 @@ describe Nsq::Discovery do
     @cluster.nsqd.each do |nsqd|
       nsqd.pub(@topic, 'some-message')
     end
+
+    @expected_nsqds = @cluster.nsqd.map{|d|"#{d.host}:#{d.tcp_port}"}.sort
   end
 
   after(:all) do
@@ -18,60 +19,66 @@ describe Nsq::Discovery do
   end
 
 
-  describe 'a single nsqlookupd' do
-    before do
-      lookupd = @cluster.nsqlookupd.first
-      @lookupds = ["#{lookupd.host}:#{lookupd.http_port}"]
-      @discovery = Nsq::Discovery.new(@lookupds)
+  def new_discovery(cluster_lookupds)
+    lookupds = cluster_lookupds.map do |lookupd|
+      "#{lookupd.host}:#{lookupd.http_port}"
     end
 
-    it '#nsqds: finds all nsqds' do
-      nsqds = @discovery.nsqds_for_topic(@topic)
-      expected_nsqds = @cluster.nsqd.map { |d| "#{d.host}:#{d.tcp_port}" }
-      expect(nsqds.sort).to eq(expected_nsqds.sort)
-      expect(nsqds.length).to eq(@nsqd_count)
+    Nsq::Discovery.new(lookupds)
+  end
+
+
+  describe 'a single nsqlookupd' do
+    before do
+      @discovery = new_discovery([@cluster.nsqlookupd.first])
+    end
+
+    describe '#nsqds_for_topic' do
+      it 'returns [] for a topic that doesn\'t exist' do
+        nsqds = @discovery.nsqds_for_topic('topic-that-does-not-exists')
+        expect(nsqds).to eq([])
+      end
+
+      it 'returns all nsqds' do
+        nsqds = @discovery.nsqds_for_topic(@topic)
+        expect(nsqds.sort).to eq(@expected_nsqds)
+      end
     end
   end
 
 
   describe 'multiple nsqlookupds' do
     before do
-      @lookupds = @cluster.nsqlookupd.map do |lookupd|
-        "#{lookupd.host}:#{lookupd.http_port}"
-      end
-      @discovery = Nsq::Discovery.new(@lookupds)
+      @discovery = new_discovery(@cluster.nsqlookupd)
     end
 
-    it '#nsqds: finds all nsqds' do
-      nsqds = @discovery.nsqds_for_topic(@topic)
-      expected_nsqds = @cluster.nsqd.map { |d| "#{d.host}:#{d.tcp_port}" }
-      expect(nsqds.sort).to eq(expected_nsqds.sort)
-      expect(nsqds.length).to eq(@nsqd_count)
+    describe '#nsqds_for_topic' do
+      it 'returns all nsqds' do
+        nsqds = @discovery.nsqds_for_topic(@topic)
+        expect(nsqds.sort).to eq(@expected_nsqds)
+      end
     end
   end
 
 
   describe 'multiple nsqlookupds, but one is down' do
     before do
-      @lookupds = @cluster.nsqlookupd.map do |lookupd|
-        "#{lookupd.host}:#{lookupd.http_port}"
-      end
       @downed_nsqlookupd = @cluster.nsqlookupd.first
       @downed_nsqlookupd.stop
-      @discovery = Nsq::Discovery.new(@lookupds)
+
+      @discovery = new_discovery(@cluster.nsqlookupd)
     end
 
     after do
       @downed_nsqlookupd.start
     end
 
-    it '#nsqds: finds all nsqds' do
-      nsqds = @discovery.nsqds_for_topic(@topic)
-      expected_nsqds = @cluster.nsqd.map { |d| "#{d.host}:#{d.tcp_port}" }
-      expect(nsqds.sort).to eq(expected_nsqds.sort)
-      expect(nsqds.length).to eq(@nsqd_count)
+    describe '#nsqds_for_topic' do
+      it 'returns all nsqds' do
+        nsqds = @discovery.nsqds_for_topic(@topic)
+        expect(nsqds.sort).to eq(@expected_nsqds)
+      end
     end
-
   end
 
 end
