@@ -46,6 +46,16 @@ module Nsq
     end
 
 
+    def req(message_id)
+      write "REQ #{message_id}\n"
+    end
+
+
+    def touch(message_id)
+      write "TOUCH #{message_id}\n"
+    end
+
+
     def cls
       write "CLS\n"
     end
@@ -81,7 +91,7 @@ module Nsq
         size, type = buffer.unpack('l>l>')
         size -= 4 # we want the size of the data part and type already took up 4 bytes
         data = @socket.read(size)
-        Frame.build(type, data)
+        Frame.build(type, data, self)
       end
     end
 

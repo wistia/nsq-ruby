@@ -6,13 +6,22 @@ module Nsq
     attr_reader :id
     attr_reader :body
 
-    def initialize(data)
+    def initialize(data, connection)
       super
       @timestamp, @attempts, @id, @body = @data.unpack("Q>s>a16a*")
     end
 
     def finish
-      # whatever
+      connection.fin(id)
     end
+
+    def requeue
+      connection.req(id)
+    end
+
+    def touch
+      connection.touch(id)
+    end
+
   end
 end
