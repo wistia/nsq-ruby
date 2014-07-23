@@ -29,10 +29,9 @@ describe Nsq::Consumer do
   describe '#on_terminate' do
     it 'closes the connection' do
       connection = @consumer.instance_variable_get(:@connection)
-      lambda { # Wrap in lambda to test outside of our after-block cleanup
-        expect(connection.wrapped_object).to receive(:close)
-        @consumer.send :on_terminate
-      }
+      # Once from our call, once from the #terminate in our `after` block
+      expect(connection.wrapped_object).to receive(:close).exactly(2)
+      @consumer.send :on_terminate
     end
   end
 

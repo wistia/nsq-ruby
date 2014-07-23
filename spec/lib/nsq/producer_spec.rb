@@ -33,10 +33,9 @@ describe Nsq::Producer do
   describe '#on_terminate' do
     it 'closes the connection' do
       connection = @producer.instance_variable_get(:@connection)
-      lambda { # Wrap in lambda to test outside of our after-block cleanup
-        expect(connection.wrapped_object).to receive(:close)
-        @producer.send :on_terminate
-      }
+      # Once from our call, once from the #terminate in our `after` block
+      expect(connection.wrapped_object).to receive(:close).exactly(2)
+      @producer.send :on_terminate
     end
   end
 
