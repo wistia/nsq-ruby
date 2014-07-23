@@ -1,7 +1,7 @@
 require_relative '../../spec_helper'
 require 'json'
 
-describe 'Nsq::Producer' do
+describe Nsq::Producer do
 
   before do
     @cluster = NsqCluster.new(nsqd_count: 1)

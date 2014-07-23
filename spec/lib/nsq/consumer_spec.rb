@@ -1,7 +1,7 @@
 require_relative '../../spec_helper'
 require 'json'
 
-describe 'Nsq::Consumer' do
+describe Nsq::Consumer do
 
   before do
     @cluster = NsqCluster.new(nsqd_count: 1)
