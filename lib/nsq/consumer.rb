@@ -7,6 +7,7 @@ module Nsq
     attr_reader :port
     attr_reader :topic
     attr_reader :messages
+    attr_reader :max_in_flight
 
     # We include Celluloid for its finalizer logic - consider removing
     include Celluloid
@@ -17,17 +18,12 @@ module Nsq
       @port = opts[:port] || 4150
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
       @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
+      @max_in_flight = opts[:max_in_flight] || 1
 
       @messages = Queue.new
 
       @connection = Connection.new(@host, @port)
-
-      # subscribe and set ready
-      @connection.sub(@topic, @channel)
-      @connection.rdy(10)
-
-      # listen for messages
-      @connection.async.listen_for_messages(@messages)
+      @connection.subscribe_and_listen(@topic, @channel, @messages, @max_in_flight)
     end
 
 

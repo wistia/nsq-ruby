@@ -21,3 +21,12 @@ def without_celluloid_logging(&block)
   yield
   Celluloid.logger = logger
 end
+
+require 'timeout'
+def assert_no_timeout(time = 1, &block)
+  expect{
+    Timeout::timeout(time) do
+      yield
+    end
+  }.not_to raise_error
+end

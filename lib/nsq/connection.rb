@@ -10,14 +10,27 @@ module Nsq
     include Celluloid::IO
 
     attr_reader :socket
+    attr_reader :max_in_flight
+    attr_reader :presumed_in_flight
 
     def initialize(host, port)
+      @presumed_in_flight = 0
+      @max_in_flight = 0
       @socket = Celluloid::IO::TCPSocket.new(host, port)
       write '  V2'
     end
 
 
+    def subscribe_and_listen(topic, channel, queue, max_in_flight)
+      @max_in_flight = max_in_flight
+      sub(topic, channel)
+      re_up_ready
+      async.listen_for_messages(queue)
+    end
+
+
     def listen_for_messages(queue)
+      @stop_listening_for_messages = false
       loop do
         frame = receive_frame
         if frame.is_a?(Response)
@@ -49,11 +62,13 @@ module Nsq
 
     def fin(message_id)
       write "FIN #{message_id}\n"
+      decrement_in_flight
     end
 
 
     def req(message_id)
       write "REQ #{message_id}\n"
+      decrement_in_flight
     end
 
 
@@ -102,10 +117,32 @@ module Nsq
       end
     end
 
+
     FRAME_CLASSES = [Response, Error, Message]
     def frame_class_for_type(type)
       raise "Bad frame type specified: #{type}" if type > FRAME_CLASSES.length - 1
       [Response, Error, Message][type]
     end
+
+
+    def decrement_in_flight
+      @presumed_in_flight -= 1
+
+      # now that we're less than @max_in_flight we might need to re-up our RDY
+      # state
+      threshold = (@max_in_flight * 0.2).ceil
+      re_up_ready if @presumed_in_flight <= threshold
+    end
+
+
+    def re_up_ready
+      rdy(@max_in_flight)
+      # assume these messages are coming our way. yes, this might not be the
+      # case, but it's much easier to manage our RDY state with the server if
+      # we treat things this way.
+      @presumed_in_flight = @max_in_flight
+    end
+
+
   end
 end
