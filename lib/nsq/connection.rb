@@ -70,7 +70,6 @@ module Nsq
 
 
     def cls
-      puts 'called cls'
       write "CLS\n"
     end
 
