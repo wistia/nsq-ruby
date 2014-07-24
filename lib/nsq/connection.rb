@@ -118,7 +118,7 @@ module Nsq
         user_agent: USER_AGENT,
         msg_timeout: 60_000, # 60 seconds
       }.to_json
-      write ['IDENTIFY', "\n", metadata.length, metadata].pack('a*a*l>a*')
+      @socket.write ['IDENTIFY', "\n", metadata.length, metadata].pack('a*a*l>a*')
     end
 
 
@@ -247,9 +247,13 @@ module Nsq
 
 
     def open_connection
+      # Block of stuff we want to write sequentially so that nothing can get
+      # added in between entries in a write queue. Ideally we'd have a separate
+      # command queue, but that seemed like overkill for now.
       with_retries do
         @socket = TCPSocket.new(@host, @port)
         @socket.write '  V2'
+        identify
       end
       start_read_loop
       start_write_loop
