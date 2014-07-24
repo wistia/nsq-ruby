@@ -18,7 +18,7 @@ module Nsq
       @max_in_flight = 0
       @socket = TCPSocket.new(host, port)
       write '  V2'
-      at_exit { close }
+      at_exit{close}
     end
 
 
@@ -49,7 +49,7 @@ module Nsq
     # closes the connection and stops listening for messages
     def close
       @stop_listening_for_messages = true
-      @message_thread && @message_thread.join
+      @message_thread.join if @message_thread
       @socket && cls
       @socket = nil
     end

@@ -15,7 +15,7 @@ module Nsq
 
       @connection = Connection.new(@host, @port)
 
-      at_exit { @connection.close }
+      at_exit{@connection.close}
     end
 
 

@@ -33,7 +33,7 @@ module Nsq
         add_connection(opts[:nsqd] || '127.0.0.1:4150')
       end
 
-      at_exit { terminate }
+      at_exit{terminate}
     end
 
 
