@@ -6,12 +6,7 @@ describe Nsq::Producer do
     @cluster = NsqCluster.new(nsqd_count: 1)
     @cluster.block_until_running
     @nsqd = @cluster.nsqd.first
-    @topic = 'some-topic'
-    @producer = Nsq::Producer.new(
-      topic: @topic,
-      host: @nsqd.host,
-      port: @nsqd.tcp_port
-    )
+    @producer = new_producer(@nsqd)
   end
   after do
     @cluster.destroy
@@ -20,7 +15,7 @@ describe Nsq::Producer do
 
   def message_count
     topics_info = JSON.parse(@nsqd.stats.body)['data']['topics']
-    topic_info = topics_info.select{|t| t['topic_name'] == @topic }.first
+    topic_info = topics_info.select{|t| t['topic_name'] == @producer.topic }.first
     if topic_info
       topic_info['message_count']
     else

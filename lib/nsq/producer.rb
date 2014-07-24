@@ -9,8 +9,9 @@ module Nsq
 
 
     def initialize(opts = {})
-      @host = opts[:host] || '127.0.0.1'
-      @port = opts[:port] || 4150
+      @nsqd = opts[:nsqd] || '127.0.0.1:4150'
+      @host, @port = @nsqd.split(':')
+
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
 
       @connection = Connection.new(@host, @port)

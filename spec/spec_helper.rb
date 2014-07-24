@@ -19,3 +19,24 @@ def assert_no_timeout(time = 1, &block)
     end
   }.not_to raise_error
 end
+
+TOPIC = 'some-topic'
+CHANNEL = 'some-channel'
+
+def new_consumer(opts = {})
+  lookupd = @cluster.nsqlookupd.map{|l| "#{l.host}:#{l.http_port}"}
+  Nsq::Consumer.new({
+    topic: TOPIC,
+    channel: CHANNEL,
+    nsqlookupd: lookupd,
+    max_in_flight: 1
+  }.merge(opts))
+end
+
+
+def new_producer(nsqd, opts = {})
+  Nsq::Producer.new({
+    topic: TOPIC,
+    nsqd: "#{nsqd.host}:#{nsqd.tcp_port}"
+  }.merge(opts))
+end

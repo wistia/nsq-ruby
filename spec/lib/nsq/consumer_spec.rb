@@ -10,13 +10,7 @@ describe Nsq::Consumer do
       @cluster = NsqCluster.new(nsqd_count: 1)
       @cluster.block_until_running
       @nsqd = @cluster.nsqd.first
-      @topic = 'some-topic'
-      @consumer = Nsq::Consumer.new(
-        topic: @topic,
-        channel: 'some-channel',
-        nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}",
-        max_in_flight: 1
-      )
+      @consumer = new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}")
     end
     after do
       @cluster.destroy
@@ -25,7 +19,7 @@ describe Nsq::Consumer do
 
     describe '#messages' do
       it 'can pop off a message' do
-        @nsqd.pub(@topic, 'some-message')
+        @nsqd.pub(@consumer.topic, 'some-message')
         assert_no_timeout(1) do
           msg = @consumer.messages.pop
           expect(msg.body).to eq('some-message')
@@ -34,7 +28,7 @@ describe Nsq::Consumer do
       end
 
       it 'can pop off many messages' do
-        10.times{@nsqd.pub(@topic, 'some-message')}
+        10.times{@nsqd.pub(@consumer.topic, 'some-message')}
         assert_no_timeout(1) do
           10.times{@consumer.messages.pop.finish}
         end
@@ -48,34 +42,24 @@ describe Nsq::Consumer do
     before do
       @cluster = NsqCluster.new(nsqd_count: 2, nsqlookupd_count: 1)
       @cluster.block_until_running
-      @topic = 'some-topic'
     end
     after do
       @cluster.destroy
     end
 
     describe '#messages' do
-      def build_consumer
-        lookupd = @cluster.nsqlookupd.first
-        Nsq::Consumer.new(
-          topic: @topic,
-          channel: 'some-channel',
-          nsqlookupd: "#{lookupd.host}:#{lookupd.http_port}",
-          max_in_flight: 1
-        )
-      end
       it 'receives messages from both queues' do
         expected_messages = (1..20).to_a.map(&:to_s)
 
         # distribute messages amongst the queues
         expected_messages.each_with_index do |message, idx|
-          @cluster.nsqd[idx % @cluster.nsqd.length].pub(@topic, message)
+          @cluster.nsqd[idx % @cluster.nsqd.length].pub(TOPIC, message)
         end
 
         received_messages = []
 
         # gather all the messages
-        consumer = build_consumer
+        consumer = new_consumer
         assert_no_timeout(2) do
           expected_messages.length.times do
             msg = consumer.messages.pop
