@@ -19,18 +19,9 @@ describe Nsq::Consumer do
       )
     end
     after do
-      @consumer.terminate
       @cluster.destroy
     end
 
-    describe '#on_terminate' do
-      it 'closes the connection' do
-        connection = @consumer.instance_variable_get(:@connections).values.first
-        # Once from our call, once from the #terminate in our `after` block
-        expect(connection.wrapped_object).to receive(:close).exactly(2)
-        @consumer.send :on_terminate
-      end
-    end
 
     describe '#messages' do
       it 'can pop off a message' do
@@ -58,17 +49,19 @@ describe Nsq::Consumer do
       @cluster = NsqCluster.new(nsqd_count: 2, nsqlookupd_count: 1)
       @cluster.block_until_running
       @topic = 'some-topic'
+    end
+    after do
+      @cluster.destroy
+    end
+
+    let(:consumer) do
       lookupd = @cluster.nsqlookupd.first
-      @consumer = Nsq::Consumer.new(
+      Nsq::Consumer.new(
         topic: @topic,
         channel: 'some-channel',
         nsqlookupd: "#{lookupd.host}:#{lookupd.http_port}",
         max_in_flight: 1
       )
-    end
-    after do
-      @consumer.terminate
-      @cluster.destroy
     end
 
     describe '#messages' do
@@ -85,7 +78,7 @@ describe Nsq::Consumer do
         # gather all the messages
         assert_no_timeout(2) do
           expected_messages.length.times do
-            msg = @consumer.messages.pop
+            msg = consumer.messages.pop
             received_messages << msg.body
             msg.finish
           end

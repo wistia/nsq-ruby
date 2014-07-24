@@ -13,7 +13,7 @@ describe Nsq::Connection do
 
   describe '#close' do
     it 'tells nsqd to close the connection' do
-      expect(@connection.wrapped_object).to receive(:cls)
+      expect(@connection).to receive(:cls)
       @connection.close
     end
   end
@@ -32,11 +32,9 @@ describe Nsq::Connection do
         end
       end
       it "raises an error if invalid type > #{MAX_VALID_TYPE} specified" do
-        without_celluloid_logging do
-          expect {
-            @connection.send(:frame_class_for_type, 3)
-          }.to raise_error(RuntimeError)
-        end
+        expect {
+          @connection.send(:frame_class_for_type, 3)
+        }.to raise_error(RuntimeError)
       end
     end
 
@@ -44,9 +42,7 @@ describe Nsq::Connection do
     describe '#handle_response' do
       it 'responds to heartbeat with NOP' do
         frame = Nsq::Response.new(described_class::RESPONSE_HEARTBEAT, @connection)
-        # Need .wrapped_object to get past ActorProxy; see:
-        # https://github.com/celluloid/celluloid/wiki/Testing
-        expect(@connection.wrapped_object).to receive(:nop)
+        expect(@connection).to receive(:nop)
         @connection.send(:handle_response, frame)
       end
     end

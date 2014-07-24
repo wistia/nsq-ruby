@@ -14,7 +14,6 @@ describe Nsq::Producer do
     )
   end
   after do
-    @producer.terminate
     @cluster.destroy
   end
 
@@ -26,16 +25,6 @@ describe Nsq::Producer do
       topic_info['message_count']
     else
       0
-    end
-  end
-
-
-  describe '#on_terminate' do
-    it 'closes the connection' do
-      connection = @producer.instance_variable_get(:@connection)
-      # Once from our call, once from the #terminate in our `after` block
-      expect(connection.wrapped_object).to receive(:close).exactly(2)
-      @producer.send :on_terminate
     end
   end
 

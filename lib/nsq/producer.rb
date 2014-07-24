@@ -7,9 +7,6 @@ module Nsq
     attr_reader :port
     attr_reader :topic
 
-    include Celluloid
-    finalizer :on_terminate
-
 
     def initialize(opts = {})
       @host = opts[:host] || '127.0.0.1'
@@ -17,6 +14,8 @@ module Nsq
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
 
       @connection = Connection.new(@host, @port)
+
+      at_exit { @connection.close }
     end
 
 
@@ -32,9 +31,5 @@ module Nsq
     end
 
 
-    private
-    def on_terminate
-      @connection.async.close
-    end
   end
 end

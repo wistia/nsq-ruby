@@ -7,10 +7,7 @@ module Nsq
     attr_reader :topic
     attr_reader :messages
     attr_reader :max_in_flight
-
-    # We include Celluloid for its finalizer logic - consider removing
-    include Celluloid
-    finalizer :on_terminate
+    attr_reader :discover_interval
 
     def initialize(opts = {})
       if opts[:nsqlookupd]
@@ -22,22 +19,35 @@ module Nsq
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
       @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
       @max_in_flight = opts[:max_in_flight] || 1
+      @discover_interval = opts[:discover_interval] || 60
 
       @messages = Queue.new
       @connections = {}
 
       if !@nsqlookupds.empty?
         @discovery = Discovery.new(@nsqlookupds)
-        discover
+        discover_repeatedly
       else
         # normally, we find nsqd instances to connect to via nsqlookupd(s)
         # in this case let's connect to an nsqd instance directly
         add_connection(opts[:nsqd] || '127.0.0.1:4150')
       end
+
+      at_exit { terminate }
     end
 
 
     private
+    def discover_repeatedly
+      @discover_thread = Thread.new do
+        loop do
+          discover
+          sleep @discover_interval
+        end
+      end
+    end
+
+
     def discover
       nsqds = @discovery.nsqds_for_topic(@topic)
 
@@ -54,8 +64,6 @@ module Nsq
           add_connection(nsqd)
         end
       end
-
-      after(1) { discover }
     end
 
 
@@ -84,10 +92,15 @@ module Nsq
     end
 
 
-    def on_terminate
+    def terminate
+      close_all_connections
+      @discover_thread && @discover_thread.kill
+    end
+
+
+    def close_all_connections
       @connections.values.each do |connection|
-        connection.async.stop_listening_for_messages
-        connection.async.close
+        connection.close
       end
     end
   end

@@ -1,13 +1,10 @@
-require 'celluloid/io'
-
+require 'socket'
 require_relative 'frames/error'
 require_relative 'frames/message'
 require_relative 'frames/response'
 
 module Nsq
   class Connection
-
-    include Celluloid::IO
 
     attr_reader :socket
     attr_accessor :max_in_flight
@@ -19,8 +16,9 @@ module Nsq
     def initialize(host, port)
       @presumed_in_flight = 0
       @max_in_flight = 0
-      @socket = Celluloid::IO::TCPSocket.new(host, port)
+      @socket = TCPSocket.new(host, port)
       write '  V2'
+      at_exit { close }
     end
 
 
@@ -28,7 +26,7 @@ module Nsq
       @max_in_flight = max_in_flight
       sub(topic, channel)
       re_up_ready
-      async.listen_for_messages(queue)
+      @message_thread = Thread.new { listen_for_messages(queue) }
     end
 
 
@@ -48,8 +46,12 @@ module Nsq
     end
 
 
-    def stop_listening_for_messages
+    # closes the connection and stops listening for messages
+    def close
       @stop_listening_for_messages = true
+      @message_thread && @message_thread.join
+      @socket && cls
+      @socket = nil
     end
 
 
@@ -104,11 +106,6 @@ module Nsq
     end
 
 
-    def close
-      cls
-    end
-
-
     private
     def write(raw)
       @socket.write(raw)
@@ -160,7 +157,6 @@ module Nsq
       # we treat things this way.
       @presumed_in_flight = @max_in_flight
     end
-
 
   end
 end

@@ -1,5 +1,3 @@
-require 'celluloid/autostart'
-
 require_relative 'version'
 
 require_relative 'nsq/frames/frame'
