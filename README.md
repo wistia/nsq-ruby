@@ -24,12 +24,13 @@ Connection
 
 # TODO
 
-- connections dropping and exploding in weird ways
+- test connections dropping and exploding in weird ways
 - If you req, touch, or fin a message that's already timed out -- it should explode? maybe raise an error.
 - identify and feature negotiation
-- rip out celluloid???
 - add logging
-
+- test
+  - connections can be added, removed by discovery
+  - connections can be fail because of network or instance blipping
 
 - gotchas
   - can't be assumed that if you pop a message that you'll be able to fin, req, touch it
@@ -37,5 +38,3 @@ Connection
   - when a connection dies, should we remove those messages from the queue?
 
 
-- connections can be added, removed by discovery
-- connections can be fail because of network or instance blipping
