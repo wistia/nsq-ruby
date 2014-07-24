@@ -16,6 +16,12 @@ describe Nsq::Connection do
       expect(@connection).to receive(:cls)
       @connection.close
     end
+
+    it 'can be called multiple times, without issue' do
+      expect{
+        10.times{@connection.close}
+      }.not_to raise_error
+    end
   end
 
 

@@ -29,12 +29,17 @@ Connection
 - identify and feature negotiation
 - add logging
 - test
-  - connections can be added, removed by discovery
+  x connections can be added, removed by discovery
   - connections can be fail because of network or instance blipping
+  - what happens when trying to start a connection to something that isn't responding
 
 - gotchas
   - can't be assumed that if you pop a message that you'll be able to fin, req, touch it
     the connection might have gone away!
   - when a connection dies, should we remove those messages from the queue?
 
+NOTE TO SELF ...
+  Threading issues with the reconnect logic, when we fail while receiving, we
+  kill the thread before it can reconnect. Reconnecting should be done in
+  one thread only!
 

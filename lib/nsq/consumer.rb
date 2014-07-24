@@ -1,4 +1,4 @@
-require_relative 'connection'
+require_relative 'consumer_connection'
 require_relative 'discovery'
 
 module Nsq
@@ -7,7 +7,8 @@ module Nsq
     attr_reader :topic
     attr_reader :messages
     attr_reader :max_in_flight
-    attr_reader :discover_interval
+    attr_reader :discovery_interval
+    attr_reader :connections
 
     def initialize(opts = {})
       if opts[:nsqlookupd]
@@ -19,7 +20,7 @@ module Nsq
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
       @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
       @max_in_flight = opts[:max_in_flight] || 1
-      @discover_interval = opts[:discover_interval] || 60
+      @discovery_interval = opts[:discovery_interval] || 60
 
       @messages = Queue.new
       @connections = {}
@@ -37,12 +38,18 @@ module Nsq
     end
 
 
+    def terminate
+      @discovery_thread.kill if @discovery_thread
+      drop_all_connections
+    end
+
+
     private
     def discover_repeatedly
-      @discover_thread = Thread.new do
+      @discovery_thread = Thread.new do
         loop do
           discover
-          sleep @discover_interval
+          sleep @discovery_interval
         end
       end
     end
@@ -52,7 +59,7 @@ module Nsq
       nsqds = @discovery.nsqds_for_topic(@topic)
 
       # remove ones that are no longer available
-      @connections.keys do |nsqd|
+      @connections.keys.each do |nsqd|
         unless nsqds.include?(nsqd)
           drop_connection(nsqd)
         end
@@ -68,17 +75,18 @@ module Nsq
 
 
     def add_connection(nsqd)
+      puts "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
-      connection = Connection.new(host, port)
+      connection = ConsumerConnection.new(host, port, @topic, @channel, @messages)
       @connections[nsqd] = connection
-      connection.subscribe_and_listen(@topic, @channel, @messages, @max_in_flight)
       redistribute_ready
     end
 
 
     def drop_connection(nsqd)
+      puts "- Dropping connection #{nsqd}"
       connection = @connections.delete(nsqd)
-      connection.terminate
+      connection.close
       redistribute_ready
     end
 
@@ -92,15 +100,9 @@ module Nsq
     end
 
 
-    def terminate
-      close_all_connections
-      @discover_thread && @discover_thread.kill
-    end
-
-
-    def close_all_connections
-      @connections.values.each do |connection|
-        connection.close
+    def drop_all_connections
+      @connections.keys.each do |nsqd|
+        drop_connection(nsqd)
       end
     end
   end

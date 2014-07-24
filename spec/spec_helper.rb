@@ -20,6 +20,21 @@ def assert_no_timeout(time = 1, &block)
   }.not_to raise_error
 end
 
+# Block execution until a condition is met
+# Times out after 5 seconds by default
+#
+# example:
+#   wait_for { @consumer.queue.length > 0 }
+#
+def wait_for(timeout = 5, &block)
+  Timeout::timeout(timeout) do
+    loop do
+      break if yield
+      sleep(0.1)
+    end
+  end
+end
+
 TOPIC = 'some-topic'
 CHANNEL = 'some-channel'
 

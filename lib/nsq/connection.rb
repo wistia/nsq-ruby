@@ -7,50 +7,48 @@ module Nsq
   class Connection
 
     attr_reader :socket
-    attr_accessor :max_in_flight
-    attr_reader :presumed_in_flight
 
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
 
     def initialize(host, port)
-      @presumed_in_flight = 0
-      @max_in_flight = 0
-      @socket = TCPSocket.new(host, port)
-      write '  V2'
+      @host = host
+      @port = port
+
       at_exit{close}
+
+      open
     end
 
 
-    def subscribe_and_listen(topic, channel, queue, max_in_flight)
-      @max_in_flight = max_in_flight
-      sub(topic, channel)
-      re_up_ready
-      @message_thread = Thread.new { listen_for_messages(queue) }
+    # open the connection
+    def open
+      @socket = TCPSocket.new(@host, @port)
+      @message_thread = Thread.new { listen_for_messages }
+      write '  V2'
     end
 
 
-    def listen_for_messages(queue)
-      @stop_listening_for_messages = false
+    def listen_for_messages
       loop do
         frame = receive_frame
         if frame.is_a?(Response)
+          puts 'response'
           handle_response(frame)
         elsif frame.is_a?(Error)
           puts "error: #{frame.data}"
         elsif frame.is_a?(Message)
-          queue.push(frame)
+          @queue.push(frame) if @queue
         end
-        break if @stop_listening_for_messages
       end
     end
 
 
     # closes the connection and stops listening for messages
     def close
-      @stop_listening_for_messages = true
-      @message_thread.join if @message_thread
-      @socket && cls
+      @message_thread.kill if @message_thread
+      @message_thread = nil
+      cls if @socket
       @socket = nil
     end
 
@@ -109,6 +107,9 @@ module Nsq
     private
     def write(raw)
       @socket.write(raw)
+    rescue Errno::EPIPE, Errno::ECONNRESET => ex
+      puts "#{@port} Died writing"
+      died(ex)
     end
 
 
@@ -130,6 +131,9 @@ module Nsq
         frame_class = frame_class_for_type(type)
         frame_class.new(data, self)
       end
+    rescue Errno::ECONNRESET => ex
+      puts "#{@port} Died receiving"
+      died(ex)
     end
 
 
@@ -156,6 +160,13 @@ module Nsq
       # case, but it's much easier to manage our RDY state with the server if
       # we treat things this way.
       @presumed_in_flight = @max_in_flight
+    end
+
+
+    def died(reason)
+      @message_thread.kill if @message_thread
+      @message_thread = nil
+      @socket = nil
     end
 
   end
