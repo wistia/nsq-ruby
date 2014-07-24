@@ -54,17 +54,16 @@ describe Nsq::Consumer do
       @cluster.destroy
     end
 
-    let(:consumer) do
-      lookupd = @cluster.nsqlookupd.first
-      Nsq::Consumer.new(
-        topic: @topic,
-        channel: 'some-channel',
-        nsqlookupd: "#{lookupd.host}:#{lookupd.http_port}",
-        max_in_flight: 1
-      )
-    end
-
     describe '#messages' do
+      def build_consumer
+        lookupd = @cluster.nsqlookupd.first
+        Nsq::Consumer.new(
+          topic: @topic,
+          channel: 'some-channel',
+          nsqlookupd: "#{lookupd.host}:#{lookupd.http_port}",
+          max_in_flight: 1
+        )
+      end
       it 'receives messages from both queues' do
         expected_messages = (1..20).to_a.map(&:to_s)
 
@@ -76,6 +75,7 @@ describe Nsq::Consumer do
         received_messages = []
 
         # gather all the messages
+        consumer = build_consumer
         assert_no_timeout(2) do
           expected_messages.length.times do
             msg = consumer.messages.pop
