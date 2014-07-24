@@ -21,6 +21,16 @@ describe Nsq::Connection do
 
 
   describe 'private methods' do
+    describe 'NSQ commands' do
+      describe '#identify' do
+        it 'generates a correct id' do
+          expect(@connection).to receive(:write).with(
+            %Q{IDENTIFY\n\x00\x00\x01.{\"client_id\":\"robbys-macbook-pro.local\",\"hostname\":\"Robbys-MacBook-Pro.local\",\"feature_negotiation\":false,\"heartbeat_interval\":30000,\"output_buffer\":16000,\"output_buffer_timeout\":250,\"tls_v1\":false,\"snappy\":false,\"deflate\":false,\"sample_rate\":0,\"user_agent\":\"nsq-ruby-client/0.0.1\",\"msg_timeout\":60000}}
+          )
+          @connection.send :identify
+        end
+      end
+    end
     describe '#frame_class_for_type' do
       MAX_VALID_TYPE = described_class::FRAME_CLASSES.length - 1
       it "returns a frame class for types 0-#{MAX_VALID_TYPE}" do

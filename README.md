@@ -20,6 +20,9 @@ Consumer
 Discovery
 Connection
 
+# Requirements
+
+NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 
 
 # TODO
@@ -43,4 +46,3 @@ NOTE TO SELF ...
   Threading issues with the reconnect logic, when we fail while receiving, we
   kill the thread before it can reconnect. Reconnecting should be done in
   one thread only!
-

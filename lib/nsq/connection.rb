@@ -1,5 +1,7 @@
+require 'json'
 require 'socket'
 require 'timeout'
+
 require_relative 'frames/error'
 require_relative 'frames/message'
 require_relative 'frames/response'
@@ -9,6 +11,7 @@ module Nsq
 
     attr_reader :socket
 
+    USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
 
@@ -96,6 +99,26 @@ module Nsq
     private
     def write(raw)
       @write_queue.push(raw)
+    end
+
+
+    def identify
+      hostname = Socket.gethostname
+      metadata = {
+        client_id: Socket.gethostbyname(hostname).flatten.compact.first,
+        hostname: hostname,
+        feature_negotiation: false,
+        heartbeat_interval: 30_000, # 30 seconds
+        output_buffer: 16_000, # 16kb
+        output_buffer_timeout: 250, # 250ms
+        tls_v1: false,
+        snappy: false,
+        deflate: false,
+        sample_rate: 0, # disable sampling
+        user_agent: USER_AGENT,
+        msg_timeout: 60_000, # 60 seconds
+      }.to_json
+      write ['IDENTIFY', "\n", metadata.length, metadata].pack('a*a*l>a*')
     end
 
 
