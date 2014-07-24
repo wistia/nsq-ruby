@@ -10,7 +10,7 @@ module Nsq
     include Celluloid::IO
 
     attr_reader :socket
-    attr_reader :max_in_flight
+    attr_accessor :max_in_flight
     attr_reader :presumed_in_flight
 
     RESPONSE_HEARTBEAT = '_heartbeat_'
@@ -69,8 +69,8 @@ module Nsq
     end
 
 
-    def req(message_id)
-      write "REQ #{message_id}\n"
+    def req(message_id, timeout)
+      write "REQ #{message_id} #{timeout}\n"
       decrement_in_flight
     end
 

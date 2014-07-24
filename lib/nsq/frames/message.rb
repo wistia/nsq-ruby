@@ -17,8 +17,8 @@ module Nsq
       connection.fin(id)
     end
 
-    def requeue
-      connection.req(id)
+    def requeue(timeout = 0)
+      connection.req(id, timeout)
     end
 
     def touch
