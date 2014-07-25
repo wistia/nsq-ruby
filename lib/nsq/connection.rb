@@ -24,7 +24,7 @@ module Nsq
       @port = port
       @connected = false
 
-      at_exit{close}
+      at_exit{terminate}
 
       start_connection_loop
     end
