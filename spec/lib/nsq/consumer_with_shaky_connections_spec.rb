@@ -48,14 +48,7 @@ describe Nsq::Consumer do
     50.times{@cluster.nsqd[1].pub(TOPIC, 'hay')}
 
     assert_no_timeout do
-      100.times do
-        msg = @consumer.messages.pop
-        if msg.connection.alive?
-          msg.finish
-        else
-          @consumer.messages.push msg
-        end
-      end
+      100.times{@consumer.messages.pop.finish}
     end
   end
 
