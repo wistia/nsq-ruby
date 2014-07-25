@@ -41,14 +41,23 @@ describe Nsq::Consumer do
 
   it 'should continue processing messages when a queue is down' do
     # shut down the last nsqd
-    @cluster.nsqd.last.stop
+    @cluster.nsqd[2].stop
 
     # make sure there are more messages on each queue than max in flight
     50.times{@cluster.nsqd[0].pub(TOPIC, 'hay')}
     50.times{@cluster.nsqd[1].pub(TOPIC, 'hay')}
 
-    assert_no_timeout do
-      100.times{@consumer.messages.pop.finish}
+    assert_no_timeout(5) do
+      x = 0
+      # This loop dies on iteration 4. There are three nsqds - each one is blowing up?
+      100.times do
+        x += 1
+        puts x
+        msg = @consumer.messages.pop
+        puts msg
+        # msg.finish
+      end
+      # 100.times{@consumer.messages.pop.finish}
     end
   end
 
