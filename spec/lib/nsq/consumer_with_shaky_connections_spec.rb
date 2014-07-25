@@ -13,7 +13,7 @@ describe Nsq::Consumer do
       nsqd.pub(TOPIC, 'hi')
     end
 
-    @consumer = new_consumer(max_in_flight: 20, discovery_interval: 0.1)
+    @consumer = new_consumer(max_in_flight: 20, discovery_interval: 0.25)
     wait_for { @consumer.connections.length == @nsqd_count }
   end
 
@@ -64,24 +64,31 @@ describe Nsq::Consumer do
     begin
       nsqd = @cluster.nsqd.last
       nsqd.stop
+      puts 'nsqd stopped'
 
-      thread = Thread.new do
+      puts 'creating thread'
+      # thread = Thread.new do
+        puts 'in thread'
         nsqd.start
+        puts 'nsqd started'
         nsqd.block_until_running
+        puts 'nsqd running'
         nsqd.pub(TOPIC, 'needle')
-      end
+        puts '*** MESSAGE PUBLISHED ***'
+      # end
 
-      wait_for do
+      wait_for(4) do
         string = nil
-        until(string == 'needle')
+        until string == 'needle'
           msg = @consumer.messages.pop
+          puts "got msg: #{msg.body}"
           string = msg.body
           msg.finish
         end
         true
       end
 
-      thread.join
+      # thread.join
     end
   end
 
