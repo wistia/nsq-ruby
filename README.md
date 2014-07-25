@@ -27,31 +27,19 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 
 # TODO
 
-x test connections dropping and exploding in weird ways
-- If you req, touch, or fin a message that's already timed out -- it should explode? maybe raise an error.
-- add logging
-- mechanism to write and wait for ok response (for connecting and subscribing?)
-x test
-  x connections can be added, removed by discovery
-  x connections can be fail because of network or instance blipping
-  x what happens when trying to start a connection to something that isn't responding
+- test
   - requeue
   - touch
 
 - feature
   - should we take messages out of the queue when a connection dies?
+  - mechanism to write and wait for ok response (for connecting and subscribing?)
+
+- health
+  - kill consumer_connection in favor of one queue
 
 - api
   - should we have a nicer api instead of: consumer.messages.pop?
   - consumer.queue_size
   - consumer.next_message
 
-- gotchas
-  - can't be assumed that if you pop a message that you'll be able to fin, req, touch it
-    the connection might have gone away!
-  - when a connection dies, should we remove those messages from the queue?
-
-NOTE TO SELF ...
-  Threading issues with the reconnect logic, when we fail while receiving, we
-  kill the thread before it can reconnect. Reconnecting should be done in
-  one thread only!
