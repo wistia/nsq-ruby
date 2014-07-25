@@ -28,6 +28,7 @@ Connection
 - If you req, touch, or fin a message that's already timed out -- it should explode? maybe raise an error.
 - identify and feature negotiation
 - add logging
+- mechanism to write and wait for ok response (for connecting and subscribing?)
 - test
   x connections can be added, removed by discovery
   - connections can be fail because of network or instance blipping

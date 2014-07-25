@@ -14,30 +14,20 @@ module Nsq
       @channel = channel
 
       super(host, port)
-
-      subscribe
     end
 
 
     def subscribe
+      puts "#{@port} Subscribing"
       sub(@topic, @channel)
       re_up_ready
     end
 
 
-    def died(reason)
-      puts "#{@port} DIED: #{reason}"
-      super
-
-      sleep(1)
-
-      # reopen in a bit
-      puts "#{@port} reopening"
-      open
-      puts "#{@port} subscribing"
+    def after_connect_hook
       subscribe
-      puts "#{@port} done"
     end
+
 
   end
 end

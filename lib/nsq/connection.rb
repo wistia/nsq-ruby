@@ -1,4 +1,5 @@
 require 'socket'
+require 'timeout'
 require_relative 'frames/error'
 require_relative 'frames/message'
 require_relative 'frames/response'
@@ -16,21 +17,28 @@ module Nsq
       # for outgoing communication
       @write_queue = Queue.new
 
+      # for indicating that the connection has died
+      @death_queue = Queue.new
+
       @host = host
       @port = port
+      @connected = false
 
       at_exit{close}
 
-      open
+      start_connection_loop
     end
 
 
-    # open the connection
-    def open
-      @socket = TCPSocket.new(@host, @port)
-      start_read_loop
-      start_write_loop
-      write '  V2'
+    def connected?
+      @connected
+    end
+
+
+    # close the connection and don't try to re-open it
+    def terminate
+      @connection_loop_thread.kill if @connection_loop_thread
+      close
     end
 
 
@@ -40,6 +48,7 @@ module Nsq
       stop_read_loop
       stop_write_loop
       @socket = nil
+      @connected = false
     end
 
 
@@ -71,12 +80,12 @@ module Nsq
 
 
     def cls
-      write 'CLS\n'
+      write "CLS\n"
     end
 
 
     def nop
-      write 'NOP\n'
+      write "NOP\n"
     end
 
 
@@ -111,16 +120,22 @@ module Nsq
 
 
     def receive_frame
-      if buffer = @socket.read(8)
-        size, type = buffer.unpack('l>l>')
-        size -= 4 # we want the size of the data part and type already took up 4 bytes
-        data = @socket.read(size)
-        frame_class = frame_class_for_type(type)
-        frame_class.new(data, self)
+      Timeout::timeout(0.1) do
+        loop do
+          if buffer = @socket.read(8)
+            size, type = buffer.unpack('l>l>')
+            size -= 4 # we want the size of the data part and type already took up 4 bytes
+            data = @socket.read(size)
+            frame_class = frame_class_for_type(type)
+            return frame_class.new(data, self)
+          end
+        end
       end
     rescue Errno::ECONNRESET => ex
       puts "#{@port} Died receiving"
       died(ex)
+    rescue Timeout::Error => ex
+      nop
     end
 
 
@@ -165,7 +180,6 @@ module Nsq
       loop do
         frame = receive_frame
         if frame.is_a?(Response)
-          puts 'response'
           handle_response(frame)
         elsif frame.is_a?(Error)
           puts "error: #{frame.data}"
@@ -198,11 +212,101 @@ module Nsq
     rescue Errno::EPIPE, Errno::ECONNRESET => ex
       puts "#{@port} Died writing"
       died(ex)
+    rescue Exception => ex
+      puts '!' * 100
+      puts "Another write exception"
+      died(ex)
+    end
+
+
+    # Waits for death of connection
+    def start_connection_loop
+      @connection_loop_thread ||= Thread.new{connect_and_monitor}
+    end
+
+
+    def connect
+      with_retries do
+        @socket = TCPSocket.new(@host, @port)
+      end
+      start_read_loop
+      start_write_loop
+      write '  V2'
+      @connected = true
+      after_connect_hook
+    end
+
+
+    def after_connect_hook
+      # for ConsumerConnection
+    end
+
+
+    def connect_and_monitor
+      connect
+
+      loop do
+        # wait for death, hopefully it never comes
+        cause_of_death = @death_queue.pop
+        puts "Died from: #{cause_of_death}"
+
+        puts "#{@port} Reconnecting..."
+        close
+        connect
+        puts "#{@port} Reconnected!"
+
+        sleep(0.1)
+
+        # clear all death messages
+        @death_queue.clear
+      end
     end
 
 
     def died(reason)
-      @socket = nil
+      @connected = false
+      @death_queue.push(reason)
+    end
+
+
+    # Retry the supplied block with exponential backoff.
+    #
+    # Borrowed liberally from:
+    # https://github.com/ooyala/retries/blob/master/lib/retries.rb
+    def with_retries(&block)
+      base_sleep_seconds = 0.5
+      max_sleep_seconds = 300 # 5 minutes
+
+      # Let's do this thing
+      attempts = 0
+      start_time = Time.now
+      begin
+        attempts += 1
+        return block.call(attempts)
+      rescue Exception => ex
+        raise exception if attempts >= 100
+
+        # The sleep time is an exponentially-increasing function of base_sleep_seconds.
+        # But, it never exceeds max_sleep_seconds.
+        sleep_seconds = [base_sleep_seconds * (2 ** (attempts - 1)), max_sleep_seconds].min
+        # Randomize to a random value in the range sleep_seconds/2 .. sleep_seconds
+        sleep_seconds = sleep_seconds * (0.5 * (1 + rand()))
+        # But never sleep less than base_sleep_seconds
+        sleep_seconds = [base_sleep_seconds, sleep_seconds].max
+
+        puts "Failed to connect: #{ex}. Retrying in #{sleep_seconds.round(1)} seconds."
+        #logger.warn "Failed to connect: #{ex}. Retrying in #{sleep_seconds}."
+
+        snooze sleep_seconds
+
+        retry
+      end
+    end
+
+
+    # Se we can stub for testing and reconnect in a tight loop
+    def snooze(t)
+      sleep(t)
     end
 
 

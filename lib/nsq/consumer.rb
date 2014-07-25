@@ -86,7 +86,7 @@ module Nsq
     def drop_connection(nsqd)
       puts "- Dropping connection #{nsqd}"
       connection = @connections.delete(nsqd)
-      connection.close
+      connection.terminate
       redistribute_ready
     end
 
