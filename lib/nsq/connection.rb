@@ -12,6 +12,9 @@ module Nsq
     RESPONSE_OK = 'OK'
 
     def initialize(host, port)
+      # for outgoing communication
+      @write_queue = Queue.new
+
       @host = host
       @port = port
 
@@ -24,31 +27,17 @@ module Nsq
     # open the connection
     def open
       @socket = TCPSocket.new(@host, @port)
-      @message_thread = Thread.new { listen_for_messages }
+      start_read_loop
+      start_write_loop
       write '  V2'
-    end
-
-
-    def listen_for_messages
-      loop do
-        frame = receive_frame
-        if frame.is_a?(Response)
-          puts 'response'
-          handle_response(frame)
-        elsif frame.is_a?(Error)
-          puts "error: #{frame.data}"
-        elsif frame.is_a?(Message)
-          @queue.push(frame) if @queue
-        end
-      end
     end
 
 
     # closes the connection and stops listening for messages
     def close
-      @message_thread.kill if @message_thread
-      @message_thread = nil
-      cls if @socket
+      cls
+      stop_read_loop
+      stop_write_loop
       @socket = nil
     end
 
@@ -106,10 +95,7 @@ module Nsq
 
     private
     def write(raw)
-      @socket.write(raw)
-    rescue Errno::EPIPE, Errno::ECONNRESET => ex
-      puts "#{@port} Died writing"
-      died(ex)
+      @write_queue.push(raw)
     end
 
 
@@ -163,11 +149,61 @@ module Nsq
     end
 
 
+    def start_read_loop
+      @read_loop_thread ||= Thread.new{read_loop}
+    end
+
+
+    def stop_read_loop
+      @read_loop_thread.kill if @read_loop_thread
+      @read_loop_thread = nil
+    end
+
+
+    def read_loop
+      loop do
+        frame = receive_frame
+        if frame.is_a?(Response)
+          puts 'response'
+          handle_response(frame)
+        elsif frame.is_a?(Error)
+          puts "error: #{frame.data}"
+        elsif frame.is_a?(Message)
+          @queue.push(frame) if @queue
+        end
+      end
+    end
+
+
+    def start_write_loop
+      @write_loop_thread ||= Thread.new{write_loop}
+    end
+
+
+    def stop_write_loop
+      @stop_write_loop = true
+      @write_loop_thread.join if @write_loop_thread
+      @write_loop_thread = nil
+    end
+
+
+    def write_loop
+      @stop_write_loop = false
+      loop do
+        data = @write_queue.pop
+        @socket.write(data)
+        break if @stop_write_loop && @write_queue.size == 0
+      end
+    rescue Errno::EPIPE, Errno::ECONNRESET => ex
+      puts "#{@port} Died writing"
+      died(ex)
+    end
+
+
     def died(reason)
-      @message_thread.kill if @message_thread
-      @message_thread = nil
       @socket = nil
     end
+
 
   end
 end

@@ -13,6 +13,7 @@ describe Nsq::Consumer do
       @consumer = new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}")
     end
     after do
+      @consumer.terminate
       @cluster.destroy
     end
 
@@ -69,6 +70,7 @@ describe Nsq::Consumer do
         end
 
         expect(received_messages.sort).to eq(expected_messages.sort)
+        consumer.terminate
       end
 
     end
