@@ -17,7 +17,7 @@ module Nsq
 
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
 
-      @connection = Connection.new(@host, @port)
+      @connection = Connection.new(host: @host, port: @port)
 
       at_exit{@connection.close}
     end

@@ -25,12 +25,12 @@ describe Nsq::Connection do
 
     it 'shouldn\'t explode' do
       expect{
-        @connection = Nsq::Connection.new(@nsqd.host, @nsqd.tcp_port)
+        @connection = Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)
       }.not_to raise_error
     end
 
     it 'should connect when nsqd comes online' do
-      @connection = Nsq::Connection.new(@nsqd.host, @nsqd.tcp_port)
+      @connection = Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)
       @nsqd.start
       wait_for{@connection.connected?}
     end
@@ -42,7 +42,7 @@ describe Nsq::Connection do
 
   describe 'when nsqd goes down after we\'re connected' do
     before do
-      @connection = Nsq::Connection.new(@nsqd.host, @nsqd.tcp_port)
+      @connection = Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)
       wait_for{@connection.connected?}
     end
 

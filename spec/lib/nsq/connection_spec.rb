@@ -4,7 +4,7 @@ describe Nsq::Connection do
   before do
     @cluster = NsqCluster.new(nsqd_count: 1)
     @cluster.block_until_running
-    @connection = Nsq::Connection.new(@cluster.nsqd[0].host, @cluster.nsqd[0].tcp_port)
+    @connection = Nsq::Connection.new(host: @cluster.nsqd[0].host, port: @cluster.nsqd[0].tcp_port)
   end
   after do
     @connection.close

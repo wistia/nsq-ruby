@@ -15,6 +15,8 @@ module Nsq
     attr_reader :host
     attr_reader :port
     attr_reader :socket
+    attr_accessor :max_in_flight
+    attr_reader :presumed_in_flight
 
     USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
@@ -22,7 +24,17 @@ module Nsq
     RECEIVE_FRAME_TIMEOUT = 1.0
 
 
-    def initialize(host, port)
+    def initialize(opts = {})
+      @host = opts[:host] || (raise ArgumentError, 'host is required')
+      @port = opts[:port] || (raise ArgumentError, 'host is required')
+      @queue = opts[:queue]
+      @topic = opts[:topic]
+      @channel = opts[:channel]
+
+      if @topic && !@channel
+        raise ArgumentError, 'channel if required if topic is specified'
+      end
+
       # for outgoing communication
       @write_queue = Queue.new
 
@@ -31,10 +43,9 @@ module Nsq
       # threads (from write_loop and read_loop to connect_and_monitor).
       @death_queue = Queue.new
 
-      @host = host
-      @port = port
-
       @connected = false
+      @presumed_in_flight = 0
+      @max_in_flight = 1
 
       start_connection_loop
     end
@@ -289,6 +300,13 @@ module Nsq
       start_read_loop
       start_write_loop
       @connected = true
+
+      # we need to re-subscribe if there's a topic specified
+      if @topic
+        debug "Subscribing to #{@topic}"
+        sub(@topic, @channel)
+        re_up_ready
+      end
     end
 
 

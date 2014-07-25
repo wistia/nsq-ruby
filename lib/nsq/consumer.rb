@@ -1,4 +1,4 @@
-require_relative 'consumer_connection'
+require_relative 'connection'
 require_relative 'discovery'
 require_relative 'logger'
 
@@ -80,7 +80,13 @@ module Nsq
     def add_connection(nsqd)
       info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
-      connection = ConsumerConnection.new(host, port, @topic, @channel, @messages)
+      connection = Connection.new(
+        host: host,
+        port: port,
+        topic: @topic,
+        channel: @channel,
+        queue: @messages
+      )
       @connections[nsqd] = connection
       redistribute_ready
     end
