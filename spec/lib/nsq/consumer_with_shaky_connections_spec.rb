@@ -69,7 +69,6 @@ describe Nsq::Consumer do
         until string == 'needle'
           msg = @consumer.messages.pop
           string = msg.body
-          puts "MESSAGE: #{string}"
           msg.finish
         end
         true
@@ -100,7 +99,6 @@ describe Nsq::Consumer do
         while (expected_messages & received_messages).length < expected_messages.length do
           msg = @consumer.messages.pop
           received_messages << msg.body
-          puts msg.body
           msg.finish
         end
 

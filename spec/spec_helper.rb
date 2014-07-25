@@ -10,7 +10,6 @@ require 'nsq'
 # in ./support/ and its subdirectories.
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 
-
 require 'timeout'
 def assert_no_timeout(time = 1, &block)
   expect{

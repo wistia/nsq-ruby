@@ -1,4 +1,5 @@
 require_relative 'connection'
+require_relative 'logger'
 
 module Nsq
   class ConsumerConnection < Connection
@@ -18,7 +19,7 @@ module Nsq
 
 
     def subscribe
-      puts "#{@port} Subscribing"
+      Nsq.log.info "#{@port} Subscribing"
       sub(@topic, @channel)
       re_up_ready
     end

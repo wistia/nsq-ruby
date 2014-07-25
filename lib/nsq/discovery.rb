@@ -1,6 +1,8 @@
-require 'uri'
-require 'net/http'
 require 'json'
+require 'net/http'
+require 'uri'
+
+require_relative 'logger'
 
 # Connects to nsqlookup's to find the nsqd instances for a given topic
 module Nsq

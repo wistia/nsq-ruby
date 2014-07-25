@@ -1,3 +1,5 @@
+require_relative '../logger'
+
 module Nsq
   class Frame
     attr_reader :data

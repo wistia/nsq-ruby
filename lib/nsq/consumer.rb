@@ -1,5 +1,6 @@
 require_relative 'consumer_connection'
 require_relative 'discovery'
+require_relative 'logger'
 
 module Nsq
   class Consumer
@@ -75,7 +76,7 @@ module Nsq
 
 
     def add_connection(nsqd)
-      puts "+ Adding connection #{nsqd}"
+      Nsq.log.info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
       connection = ConsumerConnection.new(host, port, @topic, @channel, @messages)
       @connections[nsqd] = connection
@@ -84,7 +85,7 @@ module Nsq
 
 
     def drop_connection(nsqd)
-      puts "- Dropping connection #{nsqd}"
+      Nsq.log.info "- Dropping connection #{nsqd}"
       connection = @connections.delete(nsqd)
       connection.close
       redistribute_ready

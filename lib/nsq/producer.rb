@@ -1,4 +1,5 @@
 require_relative 'connection'
+require_relative 'logger'
 
 module Nsq
   class Producer
