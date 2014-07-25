@@ -3,6 +3,8 @@ require_relative 'logger'
 
 module Nsq
   class Producer
+    include Nsq::AttributeLogger
+    @@log_attributes = [:host, :port, :topic]
 
     attr_reader :host
     attr_reader :port

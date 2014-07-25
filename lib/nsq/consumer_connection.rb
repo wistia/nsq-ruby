@@ -3,7 +3,6 @@ require_relative 'logger'
 
 module Nsq
   class ConsumerConnection < Connection
-
     attr_accessor :max_in_flight
     attr_reader :presumed_in_flight
 
@@ -19,7 +18,7 @@ module Nsq
 
 
     def subscribe
-      Nsq.log.info "#{@port} Subscribing"
+      info "#{@port} Subscribing"
       sub(@topic, @channel)
       re_up_ready
     end
@@ -30,7 +29,5 @@ module Nsq
       super
       subscribe
     end
-
-
   end
 end

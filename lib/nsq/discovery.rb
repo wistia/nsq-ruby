@@ -7,6 +7,7 @@ require_relative 'logger'
 # Connects to nsqlookup's to find the nsqd instances for a given topic
 module Nsq
   class Discovery
+    include Nsq::AttributeLogger
 
     # lookupd addresses must be formatted like so: '<host>:<http-port>'
     def initialize(lookupds)

@@ -4,6 +4,8 @@ require_relative 'logger'
 
 module Nsq
   class Consumer
+    include Nsq::AttributeLogger
+    @@log_attributes = [:topic]
 
     attr_reader :topic
     attr_reader :messages
@@ -76,7 +78,7 @@ module Nsq
 
 
     def add_connection(nsqd)
-      Nsq.log.info "+ Adding connection #{nsqd}"
+      info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
       connection = ConsumerConnection.new(host, port, @topic, @channel, @messages)
       @connections[nsqd] = connection
@@ -85,7 +87,7 @@ module Nsq
 
 
     def drop_connection(nsqd)
-      Nsq.log.info "- Dropping connection #{nsqd}"
+      info "- Dropping connection #{nsqd}"
       connection = @connections.delete(nsqd)
       connection.close
       redistribute_ready

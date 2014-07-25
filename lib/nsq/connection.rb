@@ -9,7 +9,11 @@ require_relative 'logger'
 
 module Nsq
   class Connection
+    include Nsq::AttributeLogger
+    @@log_attributes = [:host, :port]
 
+    attr_reader :host
+    attr_reader :port
     attr_reader :socket
 
     USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
@@ -152,7 +156,7 @@ module Nsq
         end
       end
     rescue Errno::ECONNRESET => ex
-      Nsq.logger.warn "#{@port} Died receiving: #{ex}"
+      warn "#{@port} Died receiving: #{ex}"
       died(ex)
     rescue Timeout::Error
       # Every so often, if we haven't received a frame, send a NOP to make
@@ -206,7 +210,7 @@ module Nsq
         if frame.is_a?(Response)
           handle_response(frame)
         elsif frame.is_a?(Error)
-          Nsq.logger.error "Error received: #{frame.data}"
+          error "Error received: #{frame.data}"
         elsif frame.is_a?(Message)
           @queue.push(frame) if @queue
         end
@@ -230,15 +234,15 @@ module Nsq
       @stop_write_loop = false
       loop do
         data = @write_queue.pop
-        Nsq.log.info "Writing: #{data}"
+        info "Writing: #{data}"
         @socket.write(data)
         break if @stop_write_loop && @write_queue.size == 0
       end
     rescue Errno::EPIPE, Errno::ECONNRESET => ex
-      Nsq.log.warn "#{@port} Died writing"
+      warn "#{@port} Died writing"
       died(ex)
     rescue Exception => ex
-      Nsq.log.warn "Another write exception: #{ex}"
+      warn "Another write exception: #{ex}"
       died(ex)
     end
 
@@ -276,12 +280,12 @@ module Nsq
       loop do
         # wait for death, hopefully it never comes
         cause_of_death = @death_queue.pop
-        Nsq.log.warn "Died from: #{cause_of_death}"
+        warn "Died from: #{cause_of_death}"
 
-        Nsq.log.warn "#{@port} Reconnecting..."
+        warn "#{@port} Reconnecting..."
         close_connection
         open_connection
-        Nsq.log.warn "#{@port} Reconnected!"
+        warn "#{@port} Reconnected!"
 
         # clear all death messages, since we're now connected and things are
         # good
@@ -333,7 +337,7 @@ module Nsq
         # But never sleep less than base_sleep_seconds
         sleep_seconds = [base_sleep_seconds, sleep_seconds].max
 
-        Nsq.log.warn "Failed to connect: #{ex}. Retrying in #{sleep_seconds.round(1)} seconds."
+        warn "Failed to connect: #{ex}. Retrying in #{sleep_seconds.round(1)} seconds."
 
         snooze sleep_seconds
 

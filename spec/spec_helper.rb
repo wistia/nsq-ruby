@@ -10,6 +10,13 @@ require 'nsq'
 # in ./support/ and its subdirectories.
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 
+RSpec.configure do |config|
+  config.before(:suite) do
+    Nsq.logger = Logger.new(STDOUT) if ENV['VERBOSE']
+  end
+end
+
+
 require 'timeout'
 def assert_no_timeout(time = 1, &block)
   expect{
