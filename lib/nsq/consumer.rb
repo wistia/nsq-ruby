@@ -48,7 +48,6 @@ module Nsq
     def discover_repeatedly
       @discovery_thread = Thread.new do
         loop do
-          puts 'discovering...'
           discover
           sleep @discovery_interval
         end
@@ -57,9 +56,7 @@ module Nsq
 
 
     def discover
-      puts "Have #{connections.count} connections"
       nsqds = @discovery.nsqds_for_topic(@topic)
-      puts "Discovered #{nsqds.count} nsqds"
 
       # remove ones that are no longer available
       @connections.keys.each do |nsqd|
