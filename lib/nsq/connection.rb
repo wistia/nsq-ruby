@@ -102,6 +102,11 @@ module Nsq
     end
 
 
+    def write_to_socket(raw)
+      @socket.write raw
+    end
+
+
     def identify
       hostname = Socket.gethostname
       metadata = {
@@ -118,7 +123,7 @@ module Nsq
         user_agent: USER_AGENT,
         msg_timeout: 60_000, # 60 seconds
       }.to_json
-      @socket.write ['IDENTIFY', "\n", metadata.length, metadata].pack('a*a*l>a*')
+      write_to_socket ['IDENTIFY', "\n", metadata.length, metadata].pack('a*a*l>a*')
     end
 
 
@@ -252,7 +257,7 @@ module Nsq
       # command queue, but that seemed like overkill for now.
       with_retries do
         @socket = TCPSocket.new(@host, @port)
-        @socket.write '  V2'
+        write_to_socket '  V2'
         identify
       end
       start_read_loop
