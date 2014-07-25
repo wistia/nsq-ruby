@@ -19,6 +19,7 @@ module Nsq
     USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
+    RECEIVE_FRAME_TIMEOUT = 1.0
 
 
     def initialize(host, port)
@@ -32,6 +33,7 @@ module Nsq
 
       @host = host
       @port = port
+
       @connected = false
 
       start_connection_loop
@@ -143,7 +145,7 @@ module Nsq
 
 
     def receive_frame
-      Timeout::timeout(1) do
+      Timeout::timeout(RECEIVE_FRAME_TIMEOUT) do
         # Loop until we get a frame
         loop do
           if buffer = @socket.read(8)
@@ -156,7 +158,6 @@ module Nsq
         end
       end
     rescue Errno::ECONNRESET => ex
-      warn "#{@port} Died receiving: #{ex}"
       died(ex)
     rescue Timeout::Error
       # Every so often, if we haven't received a frame, send a NOP to make
@@ -255,21 +256,6 @@ module Nsq
     end
 
 
-    def open_connection
-      # Block of stuff we want to write sequentially so that nothing can get
-      # added in between entries in a write queue. Ideally we'd have a separate
-      # command queue, but that seemed like overkill for now.
-      with_retries do
-        @socket = TCPSocket.new(@host, @port)
-        write_to_socket '  V2'
-        identify
-      end
-      start_read_loop
-      start_write_loop
-      @connected = true
-    end
-
-
     def connect_and_monitor
       open_connection
 
@@ -278,18 +264,31 @@ module Nsq
         cause_of_death = @death_queue.pop
         warn "Died from: #{cause_of_death}"
 
-        warn "#{@port} Reconnecting..."
+        debug 'Reconnecting...'
         close_connection
         open_connection
-        warn "#{@port} Reconnected!"
+        debug 'Reconnected!'
 
-        # clear all death messages, since we're now connected and things are
-        # good
+        # clear all death messages, since we're now reconnected.
+        # we don't want to complete this loop and immediately reconnect again.
         @death_queue.clear
-
-        sleep(1)
       end
     end
+
+
+    def open_connection
+      with_retries do
+        @socket = TCPSocket.new(@host, @port)
+        # write the version and IDENTIFY directly to the socket to make sure
+        # it gets to nsqd ahead of anything in the `@write_queue`
+        write_to_socket '  V2'
+        identify
+      end
+      start_read_loop
+      start_write_loop
+      @connected = true
+    end
+
 
     # closes the connection and stops listening for messages
     def close_connection
@@ -302,6 +301,8 @@ module Nsq
     end
 
 
+    # this is called when there's a connection error in the read or write loop
+    # it triggers `connect_and_monitor` to try to reconnect
     def died(reason)
       @connected = false
       @death_queue.push(reason)

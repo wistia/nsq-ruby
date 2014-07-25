@@ -2,6 +2,9 @@ require_relative '../../spec_helper'
 
 describe Nsq::Connection do
   before do
+    # For speedier timeouts
+    stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
+
     @cluster = NsqCluster.new(nsqd_count: 1)
     @cluster.block_until_running
     @nsqd = @cluster.nsqd.first
