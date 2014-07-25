@@ -123,7 +123,7 @@ module Nsq
         user_agent: USER_AGENT,
         msg_timeout: 60_000, # 60 seconds
       }.to_json
-      write_to_socket ['IDENTIFY', "\n", metadata.length, metadata].pack('a*a*l>a*')
+      write_to_socket ["IDENTIFY\n", metadata.length, metadata].pack('a*l>a*')
     end
 
 
@@ -138,7 +138,7 @@ module Nsq
 
 
     def receive_frame
-      Timeout::timeout(0.1) do
+      Timeout::timeout(1) do
         # Loop until we get a frame
         loop do
           if buffer = @socket.read(8)
@@ -285,10 +285,11 @@ module Nsq
         open_connection
         puts "#{@port} Reconnected!"
 
-        sleep(0.1)
-
-        # clear all death messages
+        # clear all death messages, since we're now connected and things are
+        # good
         @death_queue.clear
+
+        sleep(1)
       end
     end
 
