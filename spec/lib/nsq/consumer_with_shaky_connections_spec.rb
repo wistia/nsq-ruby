@@ -3,8 +3,6 @@ require_relative '../../spec_helper'
 describe Nsq::Consumer do
 
   before do
-    puts ''
-    puts '-' * 100
     @nsqd_count = 3
     @cluster = NsqCluster.new(nsqlookupd_count: 2, nsqd_count: @nsqd_count)
     @cluster.block_until_running
@@ -22,8 +20,6 @@ describe Nsq::Consumer do
   after do
     @consumer.terminate
     @cluster.destroy
-    puts '^' * 100
-    puts ''
   end
 
 
@@ -116,20 +112,21 @@ describe Nsq::Consumer do
     end
   end
 
-=begin
+
   it 'should be able to rely on the second nsqlookupd if the first dies' do
-    @cluster.nsqlookupd.first.stop
+    bad_lookupd = @cluster.nsqlookupd.first
+    bad_lookupd.stop
+    bad_lookupd.block_until_stopped
 
-    producer = new_producer(@cluster.nsqd.first, :topic => 'new-topic')
-    producer.write('new message on new topic')
-    consumer = new_consumer(:topic => 'new-topic')
+    @cluster.nsqd.first.pub('new-topic', 'new message on new topic')
+    consumer = new_consumer(topic: 'new-topic')
 
-    Timeout::timeout(5) do
-      msg = consumer.queue.pop
-      msg.content.must_equal 'new message on new topic'
+    assert_no_timeout do
+      msg = consumer.messages.pop
+      expect(msg.body).to eq('new message on new topic')
+      msg.finish
     end
   end
-=end
 
 end
 

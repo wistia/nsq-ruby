@@ -17,7 +17,7 @@ describe Nsq::Connection do
   describe 'when nsqd starts down' do
     before do
       @nsqd.stop
-      sleep(0.1)
+      @nsqd.block_until_stopped
     end
 
     it 'shouldn\'t explode' do

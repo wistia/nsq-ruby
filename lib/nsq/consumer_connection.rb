@@ -24,7 +24,9 @@ module Nsq
     end
 
 
-    def after_connect_hook
+    private
+    def open_connection
+      super
       subscribe
     end
 

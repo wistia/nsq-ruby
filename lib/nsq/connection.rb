@@ -154,7 +154,11 @@ module Nsq
       puts "#{@port} Died receiving: #{ex}"
       died(ex)
     rescue Timeout::Error
-      nop # If connection is broken, this will blow it up
+      # Every so often, if we haven't received a frame, send a NOP to make
+      # sure our connection is still alive. If it's down, writing to the
+      # socket should cause it to explode, which is good because then we
+      # can try to reconnect.
+      nop
     end
 
 
@@ -263,12 +267,6 @@ module Nsq
       start_read_loop
       start_write_loop
       @connected = true
-      after_connect_hook
-    end
-
-
-    def after_connect_hook
-      # for ConsumerConnection
     end
 
 

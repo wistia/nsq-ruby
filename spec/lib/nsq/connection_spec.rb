@@ -22,14 +22,6 @@ describe Nsq::Connection do
 
 
   describe 'private methods' do
-    describe 'NSQ commands' do
-      describe '#identify' do
-        it 'calls write to socket' do
-          expect(@connection).to receive(:write_to_socket)
-          @connection.send :identify
-        end
-      end
-    end
     describe '#frame_class_for_type' do
       MAX_VALID_TYPE = described_class::FRAME_CLASSES.length - 1
       it "returns a frame class for types 0-#{MAX_VALID_TYPE}" do
