@@ -50,7 +50,7 @@ describe Nsq::Consumer do
     assert_no_timeout do
       100.times do
         msg = @consumer.messages.pop
-        if msg.connection.open?
+        if msg.connection.alive?
           msg.finish
         else
           @consumer.messages.push msg
