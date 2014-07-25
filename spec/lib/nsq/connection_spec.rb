@@ -12,11 +12,6 @@ describe Nsq::Connection do
 
 
   describe '#close' do
-    it 'tells nsqd to close the connection' do
-      expect(@connection).to receive(:cls)
-      @connection.close
-    end
-
     it 'can be called multiple times, without issue' do
       expect{
         10.times{@connection.close}

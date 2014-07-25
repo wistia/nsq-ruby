@@ -27,11 +27,13 @@ describe Nsq::Producer do
   describe '#write' do
     it 'can queue a message' do
       @producer.write('some-message')
+      wait_for{message_count==1}
       expect(message_count).to eq(1)
     end
 
     it 'can queue multiple messages at once' do
       @producer.write(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+      wait_for{message_count==10}
       expect(message_count).to eq(10)
     end
   end

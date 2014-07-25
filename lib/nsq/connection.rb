@@ -24,8 +24,6 @@ module Nsq
       @port = port
       @connected = false
 
-      at_exit{terminate}
-
       start_connection_loop
     end
 
@@ -36,19 +34,9 @@ module Nsq
 
 
     # close the connection and don't try to re-open it
-    def terminate
-      @connection_loop_thread.kill if @connection_loop_thread
-      close
-    end
-
-
-    # closes the connection and stops listening for messages
     def close
-      cls
-      stop_read_loop
-      stop_write_loop
-      @socket = nil
-      @connected = false
+      stop_connection_loop
+      close_connection
     end
 
 
@@ -80,6 +68,7 @@ module Nsq
 
 
     def cls
+      puts 'called cls'
       write "CLS\n"
     end
 
@@ -132,7 +121,7 @@ module Nsq
         end
       end
     rescue Errno::ECONNRESET => ex
-      puts "#{@port} Died receiving"
+      puts "#{@port} Died receiving: #{ex}"
       died(ex)
     rescue Timeout::Error => ex
       nop
@@ -197,7 +186,7 @@ module Nsq
 
     def stop_write_loop
       @stop_write_loop = true
-      @write_loop_thread.join if @write_loop_thread
+      @write_loop_thread.join(1) if @write_loop_thread
       @write_loop_thread = nil
     end
 
@@ -206,6 +195,7 @@ module Nsq
       @stop_write_loop = false
       loop do
         data = @write_queue.pop
+        puts "<<< #{data}"
         @socket.write(data)
         break if @stop_write_loop && @write_queue.size == 0
       end
@@ -214,7 +204,7 @@ module Nsq
       died(ex)
     rescue Exception => ex
       puts '!' * 100
-      puts "Another write exception"
+      puts "Another write exception: #{ex}"
       died(ex)
     end
 
@@ -225,13 +215,19 @@ module Nsq
     end
 
 
-    def connect
+    def stop_connection_loop
+      @connection_loop_thread.kill if @connection_loop_thread
+      @connection_loop = nil
+    end
+
+
+    def open_connection
       with_retries do
         @socket = TCPSocket.new(@host, @port)
+        @socket.write '  V2'
       end
       start_read_loop
       start_write_loop
-      write '  V2'
       @connected = true
       after_connect_hook
     end
@@ -243,7 +239,7 @@ module Nsq
 
 
     def connect_and_monitor
-      connect
+      open_connection
 
       loop do
         # wait for death, hopefully it never comes
@@ -251,8 +247,8 @@ module Nsq
         puts "Died from: #{cause_of_death}"
 
         puts "#{@port} Reconnecting..."
-        close
-        connect
+        close_connection
+        open_connection
         puts "#{@port} Reconnected!"
 
         sleep(0.1)
@@ -260,6 +256,16 @@ module Nsq
         # clear all death messages
         @death_queue.clear
       end
+    end
+
+    # closes the connection and stops listening for messages
+    def close_connection
+      cls if connected?
+      stop_read_loop
+      stop_write_loop
+      @write_queue.clear
+      @socket = nil
+      @connected = false
     end
 
 
