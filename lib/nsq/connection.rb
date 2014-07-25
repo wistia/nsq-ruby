@@ -26,9 +26,9 @@ module Nsq
       # for outgoing communication
       @write_queue = Queue.new
 
-      # for indicating that the connection has died
-      # Use a queue so we don't have to poll it, even though we only care about
-      # the first item
+      # For indicating that the connection has died.
+      # We use a Queue so we don't have to poll. Used to communicate across
+      # threads (from write_loop and read_loop to connect_and_monitor).
       @death_queue = Queue.new
 
       @host = host
@@ -136,10 +136,12 @@ module Nsq
 
     def handle_response(frame)
       if frame.data == RESPONSE_HEARTBEAT
+        debug 'Received heartbeat'
         nop
       elsif frame.data == RESPONSE_OK
+        debug 'Received OK'
       else
-        raise "Received response we don't know how to handle: #{frame.data}"
+        die "Received response we don't know how to handle: #{frame.data}"
       end
     end
 
@@ -158,7 +160,7 @@ module Nsq
         end
       end
     rescue Errno::ECONNRESET => ex
-      died(ex)
+      die(ex)
     rescue Timeout::Error
       # Every so often, if we haven't received a frame, send a NOP to make
       # sure our connection is still alive. If it's down, writing to the
@@ -240,7 +242,7 @@ module Nsq
         break if @stop_write_loop && @write_queue.size == 0
       end
     rescue Errno::EPIPE, Errno::ECONNRESET => ex
-      died(ex)
+      die(ex)
     end
 
 
@@ -303,7 +305,7 @@ module Nsq
 
     # this is called when there's a connection error in the read or write loop
     # it triggers `connect_and_monitor` to try to reconnect
-    def died(reason)
+    def die(reason)
       @connected = false
       @death_queue.push(reason)
     end
