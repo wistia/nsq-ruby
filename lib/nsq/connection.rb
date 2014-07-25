@@ -234,15 +234,11 @@ module Nsq
       @stop_write_loop = false
       loop do
         data = @write_queue.pop
-        info "Writing: #{data}"
-        @socket.write(data)
+        debug "Writing: #{data}"
+        @socket.write(data) if @socket
         break if @stop_write_loop && @write_queue.size == 0
       end
     rescue Errno::EPIPE, Errno::ECONNRESET => ex
-      warn "#{@port} Died writing"
-      died(ex)
-    rescue Exception => ex
-      warn "Another write exception: #{ex}"
       died(ex)
     end
 
