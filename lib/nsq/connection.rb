@@ -25,6 +25,11 @@ module Nsq
     end
 
 
+    def open?
+      !!@socket
+    end
+
+
     # open the connection
     def open
       @socket = TCPSocket.new(@host, @port)
