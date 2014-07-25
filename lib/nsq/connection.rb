@@ -18,6 +18,8 @@ module Nsq
       @write_queue = Queue.new
 
       # for indicating that the connection has died
+      # Use a queue so we don't have to poll it, even though we only care about
+      # the first item
       @death_queue = Queue.new
 
       @host = host
@@ -110,6 +112,7 @@ module Nsq
 
     def receive_frame
       Timeout::timeout(0.1) do
+        # Loop until we get a frame
         loop do
           if buffer = @socket.read(8)
             size, type = buffer.unpack('l>l>')
@@ -123,8 +126,8 @@ module Nsq
     rescue Errno::ECONNRESET => ex
       puts "#{@port} Died receiving: #{ex}"
       died(ex)
-    rescue Timeout::Error => ex
-      nop
+    rescue Timeout::Error
+      nop # If connection is broken, this will blow it up
     end
 
 
