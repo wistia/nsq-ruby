@@ -11,6 +11,7 @@ module Nsq
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
 
+
     def initialize(host, port)
       # for outgoing communication
       @write_queue = Queue.new

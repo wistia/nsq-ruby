@@ -69,6 +69,7 @@ describe Nsq::Consumer do
         until(string == 'needle')
           msg = @consumer.messages.pop
           string = msg.body
+          msg.finish
         end
         true
       end
