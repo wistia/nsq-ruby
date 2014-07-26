@@ -1,7 +1,7 @@
 require_relative '../../spec_helper'
 
 describe Nsq::Discovery do
-  before(:all) do
+  before do
     @cluster = NsqCluster.new(nsqd_count: 4, nsqlookupd_count: 2)
     @cluster.block_until_running
     @topic = 'some-topic'
@@ -14,7 +14,7 @@ describe Nsq::Discovery do
     @expected_nsqds = @cluster.nsqd.map{|d|"#{d.host}:#{d.tcp_port}"}.sort
   end
 
-  after(:all) do
+  after do
     @cluster.destroy
   end
 
@@ -67,10 +67,6 @@ describe Nsq::Discovery do
       @downed_nsqlookupd.stop
 
       @discovery = new_discovery(@cluster.nsqlookupd)
-    end
-
-    after do
-      @downed_nsqlookupd.start
     end
 
     describe '#nsqds_for_topic' do
