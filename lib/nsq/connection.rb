@@ -14,14 +14,13 @@ module Nsq
 
     attr_reader :host
     attr_reader :port
-    attr_reader :socket
     attr_accessor :max_in_flight
     attr_reader :presumed_in_flight
 
     USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
-    RECEIVE_FRAME_TIMEOUT = 1.0
+    RECEIVE_FRAME_TIMEOUT = 60.0
 
 
     def initialize(opts = {})
@@ -30,10 +29,7 @@ module Nsq
       @queue = opts[:queue]
       @topic = opts[:topic]
       @channel = opts[:channel]
-
-      if @topic && !@channel
-        raise ArgumentError, 'channel if required if topic is specified'
-      end
+      @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
 
       # for outgoing communication
       @write_queue = Queue.new
@@ -139,7 +135,7 @@ module Nsq
         deflate: false,
         sample_rate: 0, # disable sampling
         user_agent: USER_AGENT,
-        msg_timeout: 60_000, # 60 seconds
+        msg_timeout: @msg_timeout
       }.to_json
       write_to_socket ["IDENTIFY\n", metadata.length, metadata].pack('a*l>a*')
     end
@@ -226,6 +222,7 @@ module Nsq
         elsif frame.is_a?(Error)
           error "Error received: #{frame.data}"
         elsif frame.is_a?(Message)
+          debug "<<< #{frame.body}"
           @queue.push(frame) if @queue
         end
       end
@@ -248,7 +245,7 @@ module Nsq
       @stop_write_loop = false
       loop do
         data = @write_queue.pop
-        debug "Writing: #{data}"
+        debug ">>> #{data}"
         @socket.write(data) if @socket
         break if @stop_write_loop && @write_queue.size == 0
       end

@@ -24,8 +24,13 @@ module Nsq
       @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
       @max_in_flight = opts[:max_in_flight] || 1
       @discovery_interval = opts[:discovery_interval] || 60
+      @msg_timeout = opts[:msg_timeout]
 
       @messages = Queue.new
+
+      # This is where we keep a record of our active nsqd connections
+      # The key is a string with the host and port of the instance (e.g.
+      # '127.0.0.1:4150') and the key is the Connection instance.
       @connections = {}
 
       if !@nsqlookupds.empty?
@@ -85,7 +90,8 @@ module Nsq
         port: port,
         topic: @topic,
         channel: @channel,
-        queue: @messages
+        queue: @messages,
+        msg_timeout: @msg_timeout
       )
       @connections[nsqd] = connection
       redistribute_ready

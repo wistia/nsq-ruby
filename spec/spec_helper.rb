@@ -26,6 +26,14 @@ def assert_no_timeout(time = 1, &block)
   }.not_to raise_error
 end
 
+def assert_timeout(time = 1, &block)
+  expect{
+    Timeout::timeout(time) do
+      yield
+    end
+  }.to raise_error(Timeout::Error)
+end
+
 # Block execution until a condition is met
 # Times out after 5 seconds by default
 #

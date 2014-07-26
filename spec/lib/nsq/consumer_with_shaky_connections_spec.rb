@@ -3,6 +3,10 @@ require_relative '../../spec_helper'
 describe Nsq::Consumer do
 
   before do
+    # For speedier timeouts
+    stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
+    allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(0.01)
+
     @nsqd_count = 3
     @cluster = NsqCluster.new(nsqlookupd_count: 2, nsqd_count: @nsqd_count)
     @cluster.block_until_running
@@ -47,7 +51,7 @@ describe Nsq::Consumer do
     50.times{@cluster.nsqd[0].pub(TOPIC, 'hay')}
     50.times{@cluster.nsqd[1].pub(TOPIC, 'hay')}
 
-    assert_no_timeout do
+    assert_no_timeout(5) do
       100.times{@consumer.messages.pop.finish}
     end
   end

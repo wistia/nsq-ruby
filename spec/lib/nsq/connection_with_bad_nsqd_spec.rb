@@ -4,13 +4,11 @@ describe Nsq::Connection do
   before do
     # For speedier timeouts
     stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
+    allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(0.01)
 
     @cluster = NsqCluster.new(nsqd_count: 1)
     @cluster.block_until_running
     @nsqd = @cluster.nsqd.first
-
-    # make this thing retry connections like crazy!
-    allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(0.01)
   end
   after do
     @cluster.destroy
@@ -60,6 +58,13 @@ describe Nsq::Connection do
       @nsqd.start
       wait_for{@connection.connected?}
       expect(@connection.connected?).to eq(true)
+    end
+  end
+
+
+  describe 'when you connect to something other than nsqd' do
+    it 'should blow up' do
+      @connection = Nsq::Connection.new(host: @nsqd.host, port: @nsqd.http_port)
     end
   end
 

@@ -28,18 +28,20 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 # TODO
 
 - test
-  - requeue
-  - touch
+  - what happens when you connect to nsqlookupd instead of nsqd?
 
 - feature
+  - should consumer and producer raise an error on construction when they fail to connect?
   - should we take messages out of the queue when a connection dies?
   - mechanism to write and wait for ok response (for connecting and subscribing?)
-
-- health
-  - kill consumer_connection in favor of one queue
 
 - api
   - should we have a nicer api instead of: consumer.messages.pop?
   - consumer.queue_size
   - consumer.next_message
 
+- questions
+  - is it possible to be in a state of complete brokeness without knowing it ...
+    i.e. your connections are all dead and not coming back
+
+- tune up README
