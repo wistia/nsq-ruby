@@ -23,6 +23,18 @@ describe Nsq::Consumer do
     end
 
 
+    describe '::new' do
+      it 'should throw an exception when trying to connect to a server that\'s down' do
+        @nsqd.stop
+        @nsqd.block_until_stopped
+
+        expect{
+          new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}")
+        }.to raise_error
+      end
+    end
+
+
     describe '#messages' do
       it 'can pop off a message' do
         @nsqd.pub(@consumer.topic, 'some-message')

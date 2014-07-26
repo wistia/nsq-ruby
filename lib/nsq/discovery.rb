@@ -46,8 +46,9 @@ module Nsq
         else
           []
         end
-      rescue => e
-        #TODO: log this!
+      rescue Exception => e
+        error "Error during discovery for #{lookupd}: #{e}"
+        puts "UH OH DISCOVERY: #{e}"
         []
       end
     end

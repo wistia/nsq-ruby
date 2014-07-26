@@ -17,7 +17,7 @@ describe Nsq::Consumer do
       nsqd.pub(TOPIC, 'hi')
     end
 
-    @consumer = new_consumer(max_in_flight: 20, discovery_interval: 0.1)
+    @consumer = new_consumer(max_in_flight: 20, discovery_interval: 0.1, msg_timeout: 6000)
     wait_for { @consumer.connections.length == @nsqd_count }
   end
 
@@ -27,6 +27,14 @@ describe Nsq::Consumer do
   end
 
 
+  # This is really testing that the discovery loop works as expected.
+  #
+  # The consumer won't evict connections if they go down, the connection itself
+  # will try to reconnect.
+  #
+  # But, when nsqd goes down, nsqlookupd will see that its gone and unregister
+  # it. So when the next time the discovery loop runs, that nsqd will no longer
+  # be listed.
   it 'should drop a connection when an nsqd goes down' do
     @cluster.nsqd.last.stop
 
@@ -97,7 +105,7 @@ describe Nsq::Consumer do
         end
       end
 
-      assert_no_timeout(5) do
+      assert_no_timeout(120) do
         received_messages = []
 
         while (expected_messages & received_messages).length < expected_messages.length do
@@ -128,6 +136,8 @@ describe Nsq::Consumer do
       expect(msg.body).to eq('new message on new topic')
       msg.finish
     end
+
+    consumer.terminate
   end
 
 end

@@ -31,6 +31,10 @@ module Nsq
       @channel = opts[:channel]
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
 
+      if @msg_timeout < 1000
+        raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
+      end
+
       # for outgoing communication
       @write_queue = Queue.new
 
@@ -43,7 +47,8 @@ module Nsq
       @presumed_in_flight = 0
       @max_in_flight = 1
 
-      start_connection_loop
+      open_connection
+      start_monitoring_connection
     end
 
 
@@ -54,7 +59,7 @@ module Nsq
 
     # close the connection and don't try to re-open it
     def close
-      stop_connection_loop
+      stop_monitoring_connection
       close_connection
     end
 
@@ -255,28 +260,26 @@ module Nsq
 
 
     # Waits for death of connection
-    def start_connection_loop
-      @connection_loop_thread ||= Thread.new{connect_and_monitor}
+    def start_monitoring_connection
+      @connection_monitor_thread ||= Thread.new{monitor_connection}
+      @connection_monitor_thread.abort_on_exception = true
     end
 
 
-    def stop_connection_loop
-      @connection_loop_thread.kill if @connection_loop_thread
-      @connection_loop = nil
+    def stop_monitoring_connection
+      @connection_monitor_thread.kill if @connection_monitor_thread
+      @connection_monitor = nil
     end
 
 
-    def connect_and_monitor
-      open_connection
-
+    def monitor_connection
       loop do
         # wait for death, hopefully it never comes
         cause_of_death = @death_queue.pop
         warn "Died from: #{cause_of_death}"
 
         debug 'Reconnecting...'
-        close_connection
-        open_connection
+        reconnect
         debug 'Reconnected!'
 
         # clear all death messages, since we're now reconnected.
@@ -286,14 +289,23 @@ module Nsq
     end
 
 
-    def open_connection
+    # close the connection if it's not already closed and try to reconnect
+    # over and over until we succeed!
+    def reconnect
+      close_connection
       with_retries do
-        @socket = TCPSocket.new(@host, @port)
-        # write the version and IDENTIFY directly to the socket to make sure
-        # it gets to nsqd ahead of anything in the `@write_queue`
-        write_to_socket '  V2'
-        identify
+        open_connection
       end
+    end
+
+
+    def open_connection
+      @socket = TCPSocket.new(@host, @port)
+      # write the version and IDENTIFY directly to the socket to make sure
+      # it gets to nsqd ahead of anything in the `@write_queue`
+      write_to_socket '  V2'
+      identify
+
       start_read_loop
       start_write_loop
       @connected = true
@@ -340,8 +352,8 @@ module Nsq
       begin
         attempts += 1
         return block.call(attempts)
-      rescue Exception => ex
-        raise exception if attempts >= 100
+      rescue Errno::ECONNREFUSED => ex
+        raise ex if attempts >= 100
 
         # The sleep time is an exponentially-increasing function of base_sleep_seconds.
         # But, it never exceeds max_sleep_seconds.

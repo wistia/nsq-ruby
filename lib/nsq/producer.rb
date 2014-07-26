@@ -35,5 +35,9 @@ module Nsq
     end
 
 
+    def terminate
+      @connection.close
+    end
+
   end
 end

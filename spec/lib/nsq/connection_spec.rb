@@ -4,6 +4,7 @@ describe Nsq::Connection do
   before do
     @cluster = NsqCluster.new(nsqd_count: 1)
     @cluster.block_until_running
+    @nsqd = @cluster.nsqd.first
     @connection = Nsq::Connection.new(host: @cluster.nsqd[0].host, port: @cluster.nsqd[0].tcp_port)
   end
   after do
@@ -12,11 +13,49 @@ describe Nsq::Connection do
   end
 
 
+  describe '::new' do
+    it 'should raise an exception if it cannot connect to nsqd' do
+      @nsqd.stop
+      @nsqd.block_until_stopped
+
+      expect{
+        Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)
+      }.to raise_error
+    end
+  end
+
+
   describe '#close' do
     it 'can be called multiple times, without issue' do
       expect{
         10.times{@connection.close}
       }.not_to raise_error
+    end
+  end
+
+
+  describe 'when nsqd goes down after we\'re connected' do
+    before do
+      # For speedier timeouts
+      stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
+      allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(0.01)
+      wait_for{@connection.connected?}
+    end
+
+    it 'should detect that it\'s down' do
+      expect(@connection.connected?).to eq(true)
+      @nsqd.stop
+      wait_for{!@connection.connected?}
+      expect(@connection.connected?).to eq(false)
+    end
+
+    it 'should reconnect when it\'s back' do
+      expect(@connection.connected?).to eq(true)
+      @nsqd.stop
+      wait_for{!@connection.connected?}
+      @nsqd.start
+      wait_for{@connection.connected?}
+      expect(@connection.connected?).to eq(true)
     end
   end
 

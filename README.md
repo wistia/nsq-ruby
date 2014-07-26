@@ -27,13 +27,15 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 
 # TODO
 
+- fix
+  - issue where message is getting requeued for consumer_with_shaky_connections_spec
+
 - test
   - what happens when you connect to nsqlookupd instead of nsqd?
 
 - feature
-  - should consumer and producer raise an error on construction when they fail to connect?
   - should we take messages out of the queue when a connection dies?
-  - mechanism to write and wait for ok response (for connecting and subscribing?)
+  - mechanism to write and wait for ok response (for connecting, indentifying, and subscribing?)
 
 - api
   - should we have a nicer api instead of: consumer.messages.pop?
