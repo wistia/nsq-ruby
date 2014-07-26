@@ -91,6 +91,22 @@ module Nsq
     end
 
 
+    def pub(topic, message)
+      write ["PUB #{topic}\n", message.length, message].pack('a*l>a*')
+    end
+
+
+    def mpub(topic, messages)
+      body = messages.map do |message|
+        [message.length, message].pack('l>a*')
+      end.join
+
+      write ["MPUB #{topic}\n", body.length, messages.size, body].pack('a*l>l>a*')
+    end
+
+
+    private
+
     def cls
       write "CLS\n"
     end
@@ -101,25 +117,6 @@ module Nsq
     end
 
 
-    # write directly to socket because we want the producer to explode if there's
-    # an error writing
-    def pub(topic, message)
-      write_to_socket ["PUB #{topic}\n", message.length, message].pack('a*l>a*')
-    end
-
-
-    # write directly to the socket because we want the producer to explode if
-    # there's an error writing
-    def mpub(topic, messages)
-      body = messages.map do |message|
-        [message.length, message].pack('l>a*')
-      end.join
-
-      write_to_socket ["MPUB #{topic}\n", body.length, messages.size, body].pack('a*l>l>a*')
-    end
-
-
-    private
     def write(raw)
       @write_queue.push(raw)
     end
@@ -264,12 +261,18 @@ module Nsq
 
     def write_loop
       @stop_write_loop = false
+      data = nil
       loop do
         data = @write_queue.pop
         write_to_socket(data)
         break if @stop_write_loop && @write_queue.size == 0
       end
     rescue Exception => ex
+      # requeue PUB and MPUB commands
+      if data =~ /^M?PUB/
+        debug "Requeueing to write_queue: #{data.inspect}"
+        @write_queue.push(data)
+      end
       die(ex)
     end
 
@@ -340,7 +343,6 @@ module Nsq
       cls if connected?
       stop_read_loop
       stop_write_loop
-      @write_queue.clear
       @socket = nil
       @connected = false
     end

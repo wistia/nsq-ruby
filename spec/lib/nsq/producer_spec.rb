@@ -50,17 +50,41 @@ describe Nsq::Producer do
       expect(message_count).to eq(10)
     end
 
-    it 'should raise an error when nsqd is down' do
+    it 'shouldn\'t raise an error when nsqd is down' do
       @nsqd.stop
       @nsqd.block_until_stopped
 
       expect{
-        # The socket doesn't throw an error until we write twice for some
-        # reason.
-        # TODO: Make the connection fail faster
-        @producer.write('fail')
-        @producer.write('fail')
-      }.to raise_error
+        10.times{@producer.write('fail')}
+      }.to_not raise_error
+    end
+
+    it 'will attempt to resend messages when it reconnects to nsqd' do
+      @nsqd.stop
+      @nsqd.block_until_stopped
+
+      # Write 10 messages while nsqd is down
+      10.times{|i| @producer.write(i)}
+
+      @nsqd.start
+      @nsqd.block_until_running
+
+      messages_received = []
+
+      assert_no_timeout(5) do
+        consumer = new_consumer
+        # TODO: make the socket fail faster
+        # We only get 9 of the 10 we send. First one is lost because we can't
+        # detect that it didn't make it.
+        9.times do |i|
+          msg = consumer.messages.pop
+          messages_received << msg.body
+          msg.finish
+        end
+        consumer.terminate
+      end
+
+      expect(messages_received.uniq.length).to eq(9)
     end
   end
 end

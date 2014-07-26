@@ -34,7 +34,8 @@ describe Nsq::Connection do
   end
 
 
-  describe 'when nsqd goes down after we\'re connected' do
+  # This is really testing the ability for Connection to reconnect
+  describe '#connected?' do
     before do
       # For speedier timeouts
       stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
@@ -42,14 +43,14 @@ describe Nsq::Connection do
       wait_for{@connection.connected?}
     end
 
-    it 'should detect that it\'s down' do
+    it 'should return false when nsqd is down' do
       expect(@connection.connected?).to eq(true)
       @nsqd.stop
       wait_for{!@connection.connected?}
       expect(@connection.connected?).to eq(false)
     end
 
-    it 'should reconnect when it\'s back' do
+    it 'should return true when nsqd is back' do
       expect(@connection.connected?).to eq(true)
       @nsqd.stop
       wait_for{!@connection.connected?}
@@ -57,6 +58,7 @@ describe Nsq::Connection do
       wait_for{@connection.connected?}
       expect(@connection.connected?).to eq(true)
     end
+
   end
 
 
