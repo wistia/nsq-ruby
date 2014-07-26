@@ -35,6 +35,11 @@ module Nsq
     end
 
 
+    def connected?
+      @connection.connected?
+    end
+
+
     def terminate
       @connection.close
     end

@@ -3,9 +3,7 @@ require_relative '../../spec_helper'
 describe Nsq::Consumer do
 
   before do
-    # For speedier timeouts
-    stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
-    allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(0.01)
+    set_speedy_connection_timeouts!
 
     @nsqd_count = 3
     @cluster = NsqCluster.new(nsqlookupd_count: 2, nsqd_count: @nsqd_count)

@@ -45,22 +45,15 @@ describe Nsq::Connection do
   describe '#connected?' do
     before do
       # For speedier timeouts
-      stub_const('Nsq::Connection::RECEIVE_FRAME_TIMEOUT', 0.1)
-      allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(0.01)
-      wait_for{@connection.connected?}
+      set_speedy_connection_timeouts!
     end
 
-    it 'should return false when nsqd is down' do
+    it 'should return true when nsqd is up and false when nsqd is down' do
+      wait_for{@connection.connected?}
       expect(@connection.connected?).to eq(true)
       @nsqd.stop
       wait_for{!@connection.connected?}
       expect(@connection.connected?).to eq(false)
-    end
-
-    it 'should return true when nsqd is back' do
-      expect(@connection.connected?).to eq(true)
-      @nsqd.stop
-      wait_for{!@connection.connected?}
       @nsqd.start
       wait_for{@connection.connected?}
       expect(@connection.connected?).to eq(true)
