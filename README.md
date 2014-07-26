@@ -28,9 +28,7 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 # TODO
 
 - test
-  - what happens when you connect to nsqlookupd instead of nsqd?
-  - what happens in a producer when the connection goes down
-    need a way to know so combine can throw 500s
+  - need a way to know so combine can throw 500s
   - unicode messages
   - assert valid topic and channel names
 

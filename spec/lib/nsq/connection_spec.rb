@@ -22,6 +22,13 @@ describe Nsq::Connection do
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)
       }.to raise_error
     end
+
+    it 'should raise an exception if it connects to something that isn\'t nsqd' do
+      expect{
+        # try to connect to the HTTP port instead of TCP
+        Nsq::Connection.new(host: @nsqd.host, port: @nsqd.http_port)
+      }.to raise_error
+    end
   end
 
 
