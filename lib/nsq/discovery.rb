@@ -48,7 +48,6 @@ module Nsq
         end
       rescue Exception => e
         error "Error during discovery for #{lookupd}: #{e}"
-        puts "UH OH DISCOVERY: #{e}"
         []
       end
     end

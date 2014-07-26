@@ -27,15 +27,18 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 
 # TODO
 
-- fix
-  - issue where message is getting requeued for consumer_with_shaky_connections_spec
-
 - test
   - what happens when you connect to nsqlookupd instead of nsqd?
+  - what happens in a producer when the connection goes down
+    need a way to know so combine can throw 500s
+  - unicode messages
+  - assert valid topic and channel names
 
 - feature
   - should we take messages out of the queue when a connection dies?
-  - mechanism to write and wait for ok response (for connecting, indentifying, and subscribing?)
+
+- code
+  - make identify take data and call the thing that generates the data?
 
 - api
   - should we have a nicer api instead of: consumer.messages.pop?

@@ -122,7 +122,8 @@ module Nsq
 
 
     def write_to_socket(raw)
-      @socket.write raw
+      debug ">>> #{raw}"
+      @socket.write(raw)
     end
 
 
@@ -171,14 +172,13 @@ module Nsq
           end
         end
       end
-    rescue Errno::ECONNRESET => ex
-      die(ex)
     rescue Timeout::Error
       # Every so often, if we haven't received a frame, send a NOP to make
       # sure our connection is still alive. If it's down, writing to the
       # socket should cause it to explode, which is good because then we
       # can try to reconnect.
       nop
+      return nil
     end
 
 
@@ -231,6 +231,8 @@ module Nsq
           @queue.push(frame) if @queue
         end
       end
+    rescue Exception => ex
+      die(ex)
     end
 
 
@@ -250,11 +252,10 @@ module Nsq
       @stop_write_loop = false
       loop do
         data = @write_queue.pop
-        debug ">>> #{data}"
-        @socket.write(data) if @socket
+        write_to_socket(data)
         break if @stop_write_loop && @write_queue.size == 0
       end
-    rescue Errno::EPIPE, Errno::ECONNRESET => ex
+    rescue Exception => ex
       die(ex)
     end
 
@@ -306,6 +307,12 @@ module Nsq
       write_to_socket '  V2'
       identify
 
+      # wait for OK response
+      frame = receive_frame
+      unless frame.is_a?(Response) && frame.data == RESPONSE_OK
+        raise "Received non-OK response while IDENTIFYing: #{frame.data}"
+      end
+
       start_read_loop
       start_write_loop
       @connected = true
@@ -352,7 +359,8 @@ module Nsq
       begin
         attempts += 1
         return block.call(attempts)
-      rescue Errno::ECONNREFUSED => ex
+      rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
+             Errno::ENETDOWN, Errno::ENETUNREACH, Errno::ETIMEDOUT, Timeout::Error => ex
         raise ex if attempts >= 100
 
         # The sleep time is an exponentially-increasing function of base_sleep_seconds.

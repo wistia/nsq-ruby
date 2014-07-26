@@ -39,7 +39,7 @@ module Nsq
       else
         # normally, we find nsqd instances to connect to via nsqlookupd(s)
         # in this case let's connect to an nsqd instance directly
-        add_connection(opts[:nsqd] || '127.0.0.1:4150')
+        add_connection(opts[:nsqd] || '127.0.0.1:4150', @max_in_flight)
       end
 
       at_exit{terminate}
@@ -76,13 +76,19 @@ module Nsq
       # add new ones
       nsqds.each do |nsqd|
         unless @connections[nsqd]
-          add_connection(nsqd)
+          # Be conservative and start new connections with RDY 1
+          # This helps ensure we don't exceed @max_in_flight across all our
+          # connections momentarily.
+          add_connection(nsqd, 1)
         end
       end
+
+      # balance RDY state amongst the connections
+      redistribute_ready
     end
 
 
-    def add_connection(nsqd)
+    def add_connection(nsqd, max_in_flight)
       info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
       connection = Connection.new(
@@ -91,10 +97,10 @@ module Nsq
         topic: @topic,
         channel: @channel,
         queue: @messages,
-        msg_timeout: @msg_timeout
+        msg_timeout: @msg_timeout,
+        max_in_flight: max_in_flight
       )
       @connections[nsqd] = connection
-      redistribute_ready
     end
 
 
@@ -108,9 +114,7 @@ module Nsq
 
     def redistribute_ready
       @connections.values.each do |connection|
-        # Be conservative, but don't set a connection's max_in_flight below 1
-        max_per_connection = [@max_in_flight / @connections.length, 1].max
-        connection.max_in_flight = max_per_connection
+        connection.max_in_flight = max_in_flight_per_connection
       end
     end
 
@@ -119,6 +123,12 @@ module Nsq
       @connections.keys.each do |nsqd|
         drop_connection(nsqd)
       end
+    end
+
+
+    # Be conservative, but don't set a connection's max_in_flight below 1
+    def max_in_flight_per_connection(number_of_connections = @connections.length)
+      [@max_in_flight / number_of_connections, 1].max
     end
   end
 end

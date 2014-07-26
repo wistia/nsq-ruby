@@ -17,8 +17,8 @@ describe Nsq::Consumer do
       nsqd.pub(TOPIC, 'hi')
     end
 
-    @consumer = new_consumer(max_in_flight: 20, discovery_interval: 0.1, msg_timeout: 6000)
-    wait_for { @consumer.connections.length == @nsqd_count }
+    @consumer = new_consumer(max_in_flight: 20, discovery_interval: 0.1)
+    wait_for{@consumer.connections.length == @nsqd_count}
   end
 
   after do
@@ -66,60 +66,27 @@ describe Nsq::Consumer do
 
 
   it 'should process messages from a new queue when it comes online' do
-    begin
-      nsqd = @cluster.nsqd.last
-      nsqd.stop
+    nsqd = @cluster.nsqd.last
+    nsqd.stop
+    nsqd.block_until_stopped
 
-      thread = Thread.new do
-        nsqd.start
-        nsqd.block_until_running
-        nsqd.pub(TOPIC, 'needle')
-      end
-
-      wait_for(5) do
-        string = nil
-        until string == 'needle'
-          msg = @consumer.messages.pop
-          string = msg.body
-          msg.finish
-        end
-        true
-      end
-
-      thread.join
+    thread = Thread.new do
+      nsqd.start
+      nsqd.block_until_running
+      nsqd.pub(TOPIC, 'needle')
     end
-  end
 
-
-  it 'should be able to handle all queues going offline and coming back' do
-    begin
-      expected_messages = @cluster.nsqd.map{|nsqd| nsqd.tcp_port.to_s}
-
-      thread = Thread.new do
-        @cluster.nsqd.each { |q| q.stop }
-        @cluster.nsqd.each { |q| q.start }
-        @cluster.block_until_running
-
-        @cluster.nsqd.each_with_index do |nsqd, idx|
-          nsqd.pub(TOPIC, expected_messages[idx])
-        end
+    assert_no_timeout(5) do
+      string = nil
+      until string == 'needle'
+        msg = @consumer.messages.pop
+        string = msg.body
+        msg.finish
       end
-
-      assert_no_timeout(120) do
-        received_messages = []
-
-        while (expected_messages & received_messages).length < expected_messages.length do
-          msg = @consumer.messages.pop
-          received_messages << msg.body
-          msg.finish
-        end
-
-        # ladies and gentlemen, we got 'em
-      end
-
-    ensure
-      thread.join
+      true
     end
+
+    thread.join
   end
 
 
@@ -138,6 +105,49 @@ describe Nsq::Consumer do
     end
 
     consumer.terminate
+  end
+
+
+  it 'should be able to handle all queues going offline and coming back' do
+    $log = true
+    $start = Time.now
+
+    # disable discovery for this consumer
+    #
+    # what can happen on occassion is that the Connections will reconnect after
+    # the nsqds come back online, but because nsqlookupd is on a bit of a delay
+    # finding out about the nsqds going offline, in our discovery loop, it
+    # informs us that queue is offline, even though we just connected to it.
+    #
+    # if we open a connection, send RDY 10 and promptly disconnect, there will
+    # be a message in flight to us that we'll never receive. this is fine, but
+    # we have to wait 60 seconds (the default) for that message to timeout.
+    #
+    # so to avoid this whole situation, we disable discovery
+    allow(@consumer).to receive(:discover)
+
+    expected_messages = @cluster.nsqd.map{|nsqd| nsqd.tcp_port.to_s}
+
+    @cluster.nsqd.each { |q| q.stop ; q.block_until_stopped }
+    @cluster.nsqd.each { |q| q.start ; q.block_until_running }
+
+    @cluster.nsqd.each_with_index do |nsqd, idx|
+      nsqd.pub(TOPIC, expected_messages[idx])
+    end
+
+    assert_no_timeout(10) do
+      received_messages = []
+
+      while (expected_messages & received_messages).length < expected_messages.length do
+        msg = @consumer.messages.pop
+        received_messages << msg.body
+        msg.finish
+      end
+
+      # ladies and gentlemen, we got 'em
+    end
+
+    $log = false
   end
 
 end
