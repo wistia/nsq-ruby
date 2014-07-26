@@ -109,9 +109,6 @@ describe Nsq::Consumer do
 
 
   it 'should be able to handle all queues going offline and coming back' do
-    $log = true
-    $start = Time.now
-
     # disable discovery for this consumer
     #
     # what can happen on occassion is that the Connections will reconnect after
@@ -146,8 +143,6 @@ describe Nsq::Consumer do
 
       # ladies and gentlemen, we got 'em
     end
-
-    $log = false
   end
 
 end
