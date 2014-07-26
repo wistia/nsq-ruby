@@ -37,13 +37,9 @@ describe Nsq::Producer do
   end
 
   describe '#connected?' do
-    it 'should return true if nsqd is up and false if it\'s down' do
-      set_speedy_connection_timeouts!
-      wait_for{@producer.connected?}
-      expect(@producer.connected?).to eq(true)
-      @nsqd.stop
-      wait_for{!@producer.connected?}
-      expect(@producer.connected?).to eq(false)
+    it 'should delegate to Connection#connected?' do
+      connection = @producer.instance_variable_get(:@connection)
+      expect(@producer.connected?).to eq(connection.connected?)
     end
   end
 
