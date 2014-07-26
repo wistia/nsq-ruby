@@ -49,5 +49,18 @@ describe Nsq::Producer do
       wait_for{message_count==10}
       expect(message_count).to eq(10)
     end
+
+    it 'should raise an error when nsqd is down' do
+      @nsqd.stop
+      @nsqd.block_until_stopped
+
+      expect{
+        # The socket doesn't throw an error until we write twice for some
+        # reason.
+        # TODO: Make the connection fail faster
+        @producer.write('fail')
+        @producer.write('fail')
+      }.to raise_error
+    end
   end
 end

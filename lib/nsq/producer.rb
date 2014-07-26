@@ -19,7 +19,7 @@ module Nsq
 
       @connection = Connection.new(host: @host, port: @port)
 
-      at_exit{@connection.close}
+      at_exit{terminate}
     end
 
 

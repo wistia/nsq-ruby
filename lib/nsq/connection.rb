@@ -101,17 +101,21 @@ module Nsq
     end
 
 
+    # write directly to socket because we want the producer to explode if there's
+    # an error writing
     def pub(topic, message)
-      write ["PUB #{topic}\n", message.length, message].pack('a*l>a*')
+      write_to_socket ["PUB #{topic}\n", message.length, message].pack('a*l>a*')
     end
 
 
+    # write directly to the socket because we want the producer to explode if
+    # there's an error writing
     def mpub(topic, messages)
       body = messages.map do |message|
         [message.length, message].pack('l>a*')
       end.join
 
-      write ["MPUB #{topic}\n", body.length, messages.size, body].pack('a*l>l>a*')
+      write_to_socket ["MPUB #{topic}\n", body.length, messages.size, body].pack('a*l>l>a*')
     end
 
 
@@ -122,8 +126,18 @@ module Nsq
 
 
     def write_to_socket(raw)
-      debug ">>> #{raw}"
+      debug ">>> #{raw.inspect}"
       @socket.write(raw)
+    end
+
+
+    # Block until we get an OK from nsqd
+    # This will timeout if we don't get a response within RECEIVE_FRAME_TIMEOUT
+    def wait_for_ok
+      frame = receive_frame
+      unless frame.is_a?(Response) && frame.data == RESPONSE_OK
+        raise "Received non-OK response while IDENTIFYing: #{frame.data}"
+      end
     end
 
 
@@ -306,12 +320,7 @@ module Nsq
       # it gets to nsqd ahead of anything in the `@write_queue`
       write_to_socket '  V2'
       identify
-
-      # wait for OK response
-      frame = receive_frame
-      unless frame.is_a?(Response) && frame.data == RESPONSE_OK
-        raise "Received non-OK response while IDENTIFYing: #{frame.data}"
-      end
+      wait_for_ok
 
       start_read_loop
       start_write_loop
