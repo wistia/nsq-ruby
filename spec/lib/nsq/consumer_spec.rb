@@ -65,6 +65,11 @@ describe Nsq::Consumer do
           10.times{@consumer.pop.finish}
         end
       end
+
+      it 'can receive messages with unicode characters' do
+        @nsqd.pub(@consumer.topic, '☺')
+        expect(@consumer.pop.body).to eq('☺')
+      end
     end
 
 

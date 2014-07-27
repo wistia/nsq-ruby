@@ -92,5 +92,12 @@ describe Nsq::Producer do
 
       expect(messages_received.uniq.length).to eq(9)
     end
+
+    it 'can send messages with unicode characters' do
+      @producer.write('☺')
+      consumer = new_consumer
+      expect(consumer.pop.body).to eq('☺')
+      consumer.terminate
+    end
   end
 end

@@ -11,6 +11,7 @@ module Nsq
     def initialize(data, connection)
       super
       @timestamp, @attempts, @id, @body = @data.unpack('Q>s>a16a*')
+      @body.force_encoding('UTF-8')
     end
 
     def finish

@@ -91,7 +91,7 @@ module Nsq
 
 
     def pub(topic, message)
-      write ["PUB #{topic}\n", message.length, message].pack('a*l>a*')
+      write ["PUB #{topic}\n", message.bytesize, message].pack('a*l>a*')
     end
 
 
