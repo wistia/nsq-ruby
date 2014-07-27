@@ -193,4 +193,29 @@ describe Nsq::Consumer do
     end
   end
 
+
+  describe 'with a high max_in_flight and tons of messages' do
+    it 'should receive all messages in a reasonable amount of time' do
+      expected_messages = (1..10_000).to_a.map(&:to_s)
+      expected_messages.each_slice(100) do |slice|
+        @cluster.nsqd.sample.mpub(TOPIC, *slice)
+      end
+
+      consumer = new_consumer(max_in_flight: 1000)
+      received_messages = []
+
+      assert_no_timeout(5) do
+        expected_messages.length.times do
+          msg = consumer.pop
+          received_messages << msg.body
+          msg.finish
+        end
+      end
+
+      consumer.terminate
+
+      expect(received_messages.sort).to eq(expected_messages.sort)
+    end
+  end
+
 end

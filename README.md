@@ -34,17 +34,18 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 # TODO
 
 - test
-  - unicode messages
   - assert valid topic and channel names
 
 - feature
   - should we take messages out of the queue when a connection dies?
 
-- questions
-  - is it possible to be in a state of complete brokeness without knowing it ...
-    i.e. your connections are all dead and not coming back
-
 - tune up README
+  - configuration options for consumer + producer
+  - how the code is structured
+  - what's supported what's not
+  - link to krakow
+  - link to nsq-cluster
+
 
 # Best practices for the producer
 
