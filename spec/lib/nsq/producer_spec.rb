@@ -83,7 +83,7 @@ describe Nsq::Producer do
         # We only get 9 of the 10 we send. First one is lost because we can't
         # detect that it didn't make it.
         9.times do |i|
-          msg = consumer.messages.pop
+          msg = consumer.pop
           messages_received << msg.body
           msg.finish
         end

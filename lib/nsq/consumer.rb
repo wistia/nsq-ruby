@@ -8,7 +8,6 @@ module Nsq
     @@log_attributes = [:topic]
 
     attr_reader :topic
-    attr_reader :messages
     attr_reader :max_in_flight
     attr_reader :discovery_interval
     attr_reader :connections
@@ -26,6 +25,7 @@ module Nsq
       @discovery_interval = opts[:discovery_interval] || 60
       @msg_timeout = opts[:msg_timeout]
 
+      # This is where we queue up the messages we receive from each connection
       @messages = Queue.new
 
       # This is where we keep a record of our active nsqd connections
@@ -49,6 +49,18 @@ module Nsq
     def terminate
       @discovery_thread.kill if @discovery_thread
       drop_all_connections
+    end
+
+
+    # pop the next message off the queue
+    def pop
+      @messages.pop
+    end
+
+
+    # returns the number of messages we have locally in the queue
+    def size
+      @messages.size
     end
 
 
@@ -114,6 +126,7 @@ module Nsq
     def redistribute_ready
       @connections.values.each do |connection|
         connection.max_in_flight = max_in_flight_per_connection
+        connection.re_up_ready
       end
     end
 

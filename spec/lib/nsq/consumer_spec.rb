@@ -16,7 +16,7 @@ describe Nsq::Consumer do
   describe 'when connecting to nsqd directly' do
     before do
       @nsqd = @cluster.nsqd.first
-      @consumer = new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}")
+      @consumer = new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}", max_in_flight: 10)
     end
     after do
       @consumer.terminate
@@ -35,11 +35,25 @@ describe Nsq::Consumer do
     end
 
 
-    describe '#messages' do
+    # This is testing the behavior of the consumer, rather than the size method itself
+    describe '#size' do
+      it 'doesn\'t exceed max_in_flight for the consumer' do
+        # publish a bunch of messages
+        (@consumer.max_in_flight * 2).times do
+          @nsqd.pub(@consumer.topic, 'some-message')
+        end
+
+        wait_for{@consumer.size >= @consumer.max_in_flight}
+        expect(@consumer.size).to eq(@consumer.max_in_flight)
+      end
+    end
+
+
+    describe '#pop' do
       it 'can pop off a message' do
         @nsqd.pub(@consumer.topic, 'some-message')
         assert_no_timeout(1) do
-          msg = @consumer.messages.pop
+          msg = @consumer.pop
           expect(msg.body).to eq('some-message')
           msg.finish
         end
@@ -48,7 +62,7 @@ describe Nsq::Consumer do
       it 'can pop off many messages' do
         10.times{@nsqd.pub(@consumer.topic, 'some-message')}
         assert_no_timeout(1) do
-          10.times{@consumer.messages.pop.finish}
+          10.times{@consumer.pop.finish}
         end
       end
     end
@@ -59,14 +73,14 @@ describe Nsq::Consumer do
         # queue a message
         @nsqd.pub(TOPIC, 'twice')
 
-        msg = @consumer.messages.pop
+        msg = @consumer.pop
 
         expect(msg.body).to eq('twice')
 
         # requeue it
         msg.requeue
 
-        req_msg = @consumer.messages.pop
+        req_msg = @consumer.pop
         expect(req_msg.body).to eq('twice')
         expect(req_msg.attempts).to eq(2)
       end
@@ -75,32 +89,42 @@ describe Nsq::Consumer do
 
 
   describe 'when using lookupd' do
+    before do
+      @expected_messages = (1..20).to_a.map(&:to_s)
+      @expected_messages.each_with_index do |message, idx|
+        @cluster.nsqd[idx % @cluster.nsqd.length].pub(TOPIC, message)
+      end
 
-    describe '#messages' do
+      @consumer = new_consumer(max_in_flight: 10)
+    end
+
+    after do
+      @consumer.terminate
+    end
+
+    describe '#pop' do
       it 'receives messages from both queues' do
-        expected_messages = (1..20).to_a.map(&:to_s)
-
-        # distribute messages amongst the queues
-        expected_messages.each_with_index do |message, idx|
-          @cluster.nsqd[idx % @cluster.nsqd.length].pub(TOPIC, message)
-        end
-
         received_messages = []
 
         # gather all the messages
-        consumer = new_consumer
         assert_no_timeout(2) do
-          expected_messages.length.times do
-            msg = consumer.messages.pop
+          @expected_messages.length.times do
+            msg = @consumer.pop
             received_messages << msg.body
             msg.finish
           end
         end
 
-        expect(received_messages.sort).to eq(expected_messages.sort)
-        consumer.terminate
+        expect(received_messages.sort).to eq(@expected_messages.sort)
       end
+    end
 
+    # This is testing the behavior of the consumer, rather than the size method itself
+    describe '#size' do
+      it 'doesn\'t exceed max_in_flight for the consumer' do
+        wait_for{@consumer.size >= @consumer.max_in_flight}
+        expect(@consumer.size).to eq(@consumer.max_in_flight)
+      end
     end
   end
 
@@ -124,7 +148,7 @@ describe Nsq::Consumer do
     it 'should give us the same message over and over' do
       @nsqd.pub(TOPIC, 'slow')
 
-      msg1 = @consumer.messages.pop
+      msg1 = @consumer.pop
       expect(msg1.body).to eq('slow')
       expect(msg1.attempts).to eq(1)
 
@@ -135,7 +159,7 @@ describe Nsq::Consumer do
       msg1.finish
 
       assert_no_timeout do
-        msg2 = @consumer.messages.pop
+        msg2 = @consumer.pop
         expect(msg2.body).to eq('slow')
         expect(msg2.attempts).to eq(2)
       end
@@ -147,7 +171,7 @@ describe Nsq::Consumer do
     it 'should be able to touch a message to reset its timeout' do
       @nsqd.pub(TOPIC, 'slow')
 
-      msg1 = @consumer.messages.pop
+      msg1 = @consumer.pop
       expect(msg1.body).to eq('slow')
 
       # touch the message in the middle of a sleep session whose total just
@@ -159,7 +183,7 @@ describe Nsq::Consumer do
 
       # if our touch didn't work, we should receive a message
       assert_timeout do
-        @consumer.messages.pop
+        @consumer.pop
       end
     end
   end

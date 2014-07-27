@@ -51,7 +51,7 @@ describe Nsq::Consumer do
     50.times{@cluster.nsqd[1].pub(TOPIC, 'hay')}
 
     assert_no_timeout(5) do
-      100.times{@consumer.messages.pop.finish}
+      100.times{@consumer.pop.finish}
     end
   end
 
@@ -70,7 +70,7 @@ describe Nsq::Consumer do
     assert_no_timeout(5) do
       string = nil
       until string == 'needle'
-        msg = @consumer.messages.pop
+        msg = @consumer.pop
         string = msg.body
         msg.finish
       end
@@ -90,7 +90,7 @@ describe Nsq::Consumer do
     consumer = new_consumer(topic: 'new-topic')
 
     assert_no_timeout do
-      msg = consumer.messages.pop
+      msg = consumer.pop
       expect(msg.body).to eq('new message on new topic')
       msg.finish
     end
@@ -113,7 +113,7 @@ describe Nsq::Consumer do
       received_messages = []
 
       while (expected_messages & received_messages).length < expected_messages.length do
-        msg = @consumer.messages.pop
+        msg = @consumer.pop
         received_messages << msg.body
         msg.finish
       end

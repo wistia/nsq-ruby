@@ -29,6 +29,7 @@ module Nsq
       @topic = opts[:topic]
       @channel = opts[:channel]
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
+      @max_in_flight = opts[:max_in_flight] || 1
 
       if @msg_timeout < 1000
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
@@ -44,7 +45,6 @@ module Nsq
 
       @connected = false
       @presumed_in_flight = 0
-      @max_in_flight = 1
 
       open_connection
       start_monitoring_connection
@@ -101,6 +101,16 @@ module Nsq
       end.join
 
       write ["MPUB #{topic}\n", body.length, messages.size, body].pack('a*l>l>a*')
+    end
+
+
+    # Tell the server we are ready for more messages!
+    def re_up_ready
+      rdy(@max_in_flight)
+      # assume these messages are coming our way. yes, this might not be the
+      # case, but it's much easier to manage our RDY state with the server if
+      # we treat things this way.
+      @presumed_in_flight = @max_in_flight
     end
 
 
@@ -193,15 +203,6 @@ module Nsq
       # state
       threshold = (@max_in_flight * 0.2).ceil
       re_up_ready if @presumed_in_flight <= threshold
-    end
-
-
-    def re_up_ready
-      rdy(@max_in_flight)
-      # assume these messages are coming our way. yes, this might not be the
-      # case, but it's much easier to manage our RDY state with the server if
-      # we treat things this way.
-      @presumed_in_flight = @max_in_flight
     end
 
 

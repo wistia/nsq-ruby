@@ -1,7 +1,12 @@
 ```Ruby
 require 'nsq'
 producer = Nsq::Producer.new(topic: 'some-topic')
+
+# write a message to NSQ
 producer.write('some-message')
+
+# write a bunch of messages to NSQ
+producer.write('one', 'two', 'three', 'four', 'five')
 ```
 
 ```Ruby
@@ -10,31 +15,16 @@ consumer = Nsq::Consumer.new(
   topic: 'some-topic',
   channel: 'some-channel'
 )
-message = consumer.messages.pop
-message.finish
 
 # the number of messages in the local queue
-consumer.count
+consumer.size
 
 # pop the next message in the queue
 msg = consumer.pop
 puts msg.body
 msg.finish
-
-# print the number of messages in the local queue
-puts consumer.message_count
-
-# pop the next message from the local queue
-message = consumer.next_message
-puts message.body
-message.finish
 ```
 
-# Structure
-
-Consumer
-Discovery
-Connection
 
 # Requirements
 
@@ -44,20 +34,11 @@ NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 # TODO
 
 - test
-  - need a way to know so combine can throw 500s
   - unicode messages
   - assert valid topic and channel names
 
 - feature
   - should we take messages out of the queue when a connection dies?
-
-- code
-  - make identify take data and call the thing that generates the data?
-
-- api
-  - should we have a nicer api instead of: consumer.messages.pop?
-  - consumer.queue_size
-  - consumer.next_message
 
 - questions
   - is it possible to be in a state of complete brokeness without knowing it ...
