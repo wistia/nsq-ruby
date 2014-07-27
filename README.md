@@ -12,6 +12,22 @@ consumer = Nsq::Consumer.new(
 )
 message = consumer.messages.pop
 message.finish
+
+# the number of messages in the local queue
+consumer.count
+
+# pop the next message in the queue
+msg = consumer.pop
+puts msg.body
+msg.finish
+
+# print the number of messages in the local queue
+puts consumer.message_count
+
+# pop the next message from the local queue
+message = consumer.next_message
+puts message.body
+message.finish
 ```
 
 # Structure

@@ -20,7 +20,6 @@ module Nsq
     USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
-    RECEIVE_FRAME_TIMEOUT = 60.0
 
 
     def initialize(opts = {})
@@ -129,7 +128,6 @@ module Nsq
 
 
     # Block until we get an OK from nsqd
-    # This will timeout if we don't get a response within RECEIVE_FRAME_TIMEOUT
     def wait_for_ok
       frame = receive_frame
       unless frame.is_a?(Response) && frame.data == RESPONSE_OK
@@ -171,25 +169,13 @@ module Nsq
 
 
     def receive_frame
-      Timeout::timeout(RECEIVE_FRAME_TIMEOUT) do
-        # Loop until we get a frame
-        loop do
-          if buffer = @socket.read(8)
-            size, type = buffer.unpack('l>l>')
-            size -= 4 # we want the size of the data part and type already took up 4 bytes
-            data = @socket.read(size)
-            frame_class = frame_class_for_type(type)
-            return frame_class.new(data, self)
-          end
-        end
+      if buffer = @socket.read(8)
+        size, type = buffer.unpack('l>l>')
+        size -= 4 # we want the size of the data part and type already took up 4 bytes
+        data = @socket.read(size)
+        frame_class = frame_class_for_type(type)
+        return frame_class.new(data, self)
       end
-    rescue Timeout::Error
-      # Every so often, if we haven't received a frame, send a NOP to make
-      # sure our connection is still alive. If it's down, writing to the
-      # socket should cause it to explode, which is good because then we
-      # can try to reconnect.
-      nop
-      return nil
     end
 
 
@@ -240,6 +226,8 @@ module Nsq
         elsif frame.is_a?(Message)
           debug "<<< #{frame.body}"
           @queue.push(frame) if @queue
+        else
+          raise 'No data from socket'
         end
       end
     rescue Exception => ex
@@ -367,11 +355,14 @@ module Nsq
       # Let's do this thing
       attempts = 0
       start_time = Time.now
+
       begin
         attempts += 1
         return block.call(attempts)
+
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
              Errno::ENETDOWN, Errno::ENETUNREACH, Errno::ETIMEDOUT, Timeout::Error => ex
+
         raise ex if attempts >= 100
 
         # The sleep time is an exponentially-increasing function of base_sleep_seconds.
@@ -384,7 +375,7 @@ module Nsq
 
         warn "Failed to connect: #{ex}. Retrying in #{sleep_seconds.round(1)} seconds."
 
-        snooze sleep_seconds
+        snooze(sleep_seconds)
 
         retry
       end

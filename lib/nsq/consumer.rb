@@ -60,27 +60,26 @@ module Nsq
           sleep @discovery_interval
         end
       end
+      @discovery_thread.abort_on_exception = true
     end
 
 
     def discover
       nsqds = @discovery.nsqds_for_topic(@topic)
 
-      # remove ones that are no longer available
-      @connections.keys.each do |nsqd|
-        unless nsqds.include?(nsqd)
-          drop_connection(nsqd)
-        end
+      # drop nsqd connections that are no longer in lookupd
+      missing_nsqds = @connections.keys - nsqds
+      missing_nsqds.each do |nsqd|
+        drop_connection(nsqd)
       end
 
       # add new ones
-      nsqds.each do |nsqd|
-        unless @connections[nsqd]
-          # Be conservative and start new connections with RDY 1
-          # This helps ensure we don't exceed @max_in_flight across all our
-          # connections momentarily.
-          add_connection(nsqd, 1)
-        end
+      new_nsqds = nsqds - @connections.keys
+      new_nsqds.each do |nsqd|
+        # Be conservative and start new connections with RDY 1
+        # This helps ensure we don't exceed @max_in_flight across all our
+        # connections momentarily.
+        add_connection(nsqd, 1)
       end
 
       # balance RDY state amongst the connections

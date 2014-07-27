@@ -33,14 +33,7 @@ describe Nsq::Consumer do
   # But, when nsqd goes down, nsqlookupd will see that its gone and unregister
   # it. So when the next time the discovery loop runs, that nsqd will no longer
   # be listed.
-  it 'should drop a connection when an nsqd goes down' do
-    @cluster.nsqd.last.stop
-
-    wait_for{@consumer.connections.length == @nsqd_count - 1}
-  end
-
-
-  it 'should add a connection when an nsqd comes back online' do
+  it 'should drop a connection when an nsqd goes down and add one when it comes back' do
     @cluster.nsqd.last.stop
     wait_for{@consumer.connections.length == @nsqd_count - 1}
 
@@ -107,20 +100,6 @@ describe Nsq::Consumer do
 
 
   it 'should be able to handle all queues going offline and coming back' do
-    # disable discovery for this consumer
-    #
-    # what can happen on occassion is that the Connections will reconnect after
-    # the nsqds come back online, but because nsqlookupd is on a bit of a delay
-    # finding out about the nsqds going offline, in our discovery loop, it
-    # informs us that queue is offline, even though we just connected to it.
-    #
-    # if we open a connection, send RDY 10 and promptly disconnect, there will
-    # be a message in flight to us that we'll never receive. this is fine, but
-    # we have to wait 60 seconds (the default) for that message to timeout.
-    #
-    # so to avoid this whole situation, we disable discovery
-    allow(@consumer).to receive(:discover)
-
     expected_messages = @cluster.nsqd.map{|nsqd| nsqd.tcp_port.to_s}
 
     @cluster.nsqd.each { |q| q.stop ; q.block_until_stopped }
