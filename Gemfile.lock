@@ -69,5 +69,5 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 1.0)
   jeweler (~> 2.0.1)
-  nsq-cluster
-  rspec
+  nsq-cluster (~> 0.2.5)
+  rspec (~> 3.0.0)
