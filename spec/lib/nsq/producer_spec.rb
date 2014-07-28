@@ -39,7 +39,9 @@ describe Nsq::Producer do
   describe '#connected?' do
     it 'should delegate to Connection#connected?' do
       connection = @producer.instance_variable_get(:@connection)
-      expect(@producer.connected?).to eq(connection.connected?)
+      obj = {}
+      expect(connection).to receive(:connected?).at_least(1).and_return(obj)
+      expect(@producer.connected?).to equal(obj)
     end
   end
 
