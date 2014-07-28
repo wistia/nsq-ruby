@@ -43,18 +43,18 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_development_dependency(%q<bundler>, ["~> 1.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 2.0.1"])
-      s.add_development_dependency(%q<nsq-cluster>, ["~> 0.2.5"])
+      s.add_development_dependency(%q<nsq-cluster>, ["~> 0.2.7"])
       s.add_development_dependency(%q<rspec>, ["~> 3.0.0"])
     else
       s.add_dependency(%q<bundler>, ["~> 1.0"])
       s.add_dependency(%q<jeweler>, ["~> 2.0.1"])
-      s.add_dependency(%q<nsq-cluster>, ["~> 0.2.5"])
+      s.add_dependency(%q<nsq-cluster>, ["~> 0.2.7"])
       s.add_dependency(%q<rspec>, ["~> 3.0.0"])
     end
   else
     s.add_dependency(%q<bundler>, ["~> 1.0"])
     s.add_dependency(%q<jeweler>, ["~> 2.0.1"])
-    s.add_dependency(%q<nsq-cluster>, ["~> 0.2.5"])
+    s.add_dependency(%q<nsq-cluster>, ["~> 0.2.7"])
     s.add_dependency(%q<rspec>, ["~> 3.0.0"])
   end
 end
