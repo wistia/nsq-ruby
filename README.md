@@ -215,7 +215,7 @@ Nsq.logger = Logger.new(STDOUT)
 
 ## Requirements
 
-NSQ v0.2.29 or later (due to IDENTITY metadata specification (0.2.28 and per-
+NSQ v0.2.29 or later due for IDENTITY metadata specification (0.2.28) and per-
 connection timeout support (0.2.29).
 
 
