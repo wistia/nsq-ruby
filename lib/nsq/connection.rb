@@ -17,7 +17,7 @@ module Nsq
     attr_accessor :max_in_flight
     attr_reader :presumed_in_flight
 
-    USER_AGENT = "nsq-ruby-client/#{Nsq::Version::STRING}"
+    USER_AGENT = "nsq-ruby/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
     RESPONSE_OK = 'OK'
 
