@@ -97,10 +97,10 @@ module Nsq
 
     def mpub(topic, messages)
       body = messages.map do |message|
-        [message.length, message].pack('l>a*')
+        [message.bytesize, message].pack('l>a*')
       end.join
 
-      write ["MPUB #{topic}\n", body.length, messages.size, body].pack('a*l>l>a*')
+      write ["MPUB #{topic}\n", body.bytesize, messages.size, body].pack('a*l>l>a*')
     end
 
 

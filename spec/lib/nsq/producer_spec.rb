@@ -93,10 +93,23 @@ describe Nsq::Producer do
       expect(messages_received.uniq.length).to eq(9)
     end
 
-    it 'can send messages with unicode characters' do
+    # Test PUB
+    it 'can send a single message with unicode characters' do
       @producer.write('☺')
       consumer = new_consumer
       expect(consumer.pop.body).to eq('☺')
+      consumer.terminate
+    end
+
+    # Test MPUB as well
+    it 'can send multiple message with unicode characters' do
+      @producer.write('☺', '☺', '☺')
+      consumer = new_consumer
+      3.times do
+        msg = consumer.pop
+        expect(msg.body).to eq('☺')
+        msg.finish
+      end
       consumer.terminate
     end
   end
