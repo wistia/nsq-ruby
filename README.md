@@ -38,7 +38,7 @@ consumer = Nsq::Consumer.new(
   channel: 'some-channel'
 )
 
-# pop a message from the queue
+# Pop a message off the queue
 msg = consumer.pop
 puts msg.body
 msg.finish
