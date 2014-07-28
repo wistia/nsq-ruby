@@ -7,7 +7,7 @@ nsq-ruby is a simple NSQ client library written in Ruby.
 - It's well tested.
 
 
-# Quick start
+## Quick start
 
 ### Publish messages
 
@@ -47,9 +47,9 @@ msg.finish
 consumer.terminate
 ```
 
-# Producer
+## Producer
 
-## Instantialization
+### Instantialization
 
 The Nsq::Producer constructor takes the following options:
 
@@ -67,7 +67,7 @@ producer = Nsq::Producer.new(
 )
 ```
 
-## `#write`
+### `#write`
 
 Publishes one or more message to nsqd. If you give it a single argument, it will
 send it to nsqd via `PUB`. If you give it multiple arguments, it will send all
@@ -91,11 +91,11 @@ connection to nsqd fails, you can lose messages. This is acceptable for our use
 cases, mostly because we are sending messages to a local nsqd instance and
 failure is very rare.
 
-## `#connected?`
+### `#connected?`
 
 Returns true if it's currently connected to nsqd and false if not.
 
-## `#terminate`
+### `#terminate`
 
 Closes the connection to nsqd and stops it from trying to automatically
 reconnect.
@@ -104,9 +104,9 @@ This is automatically called `at_exit`, but it's good practice to close your
 producers when you're done with them.
 
 
-# Consumer
+## Consumer
 
-## Instantialization
+### Instantialization
 
 | Option               | Description                                   | Default            |
 |----------------------|-----------------------------------------------|--------------------|
@@ -117,6 +117,20 @@ producers when you're done with them.
 | `max_in_flight`      | Max number of messages for this consumer to have in flight at a time   | 1 |
 | `discovery_interval` | Seconds between queue discovery via nsqlookupd    | 60.0   |
 | `msg_timeout`        | Milliseconds before nsqd will timeout a message   | 60000  |
+
+
+For example:
+
+```Ruby
+consumer = Nsq::Consumer.new(
+  topic: 'the-topic',
+  channel: 'my-channel',
+  nsqlookupd: ['127.0.0.1:4161', '4.5.6.7:4161'],
+  max_in_flight: 100,
+  discovery_interval: 30,
+  msq_timeout: 120_000
+)
+```
 
 Notes:
 
@@ -129,7 +143,7 @@ Notes:
   are connected to 3 nsqds, you may have up to 3 messages in flight at a time.
 
 
-## `#pop`
+### `#pop`
 
 `nsq-ruby` works by maintaining a local queue of in flight messages from NSQ.
 To get at these messages, just call pop.
@@ -142,44 +156,44 @@ If there are messages on the queue, `pop` will return one immediately. If there
 are no messages on the queue, `pop` will block execution until one arrives.
 
 
-## `#size`
+### `#size`
 
 `size` returns the size of the local message queue.
 
 
-## `#terminate`
+### `#terminate`
 
 Gracefully closes all connections and stops the consumer. You should call this
 when you're finished with a consumer object.
 
 
-# Message
+## Message
 
 The `Message` object is what you get when you call `pop` on a consumer.
 Once you have a message, you'll likely want to get its contents using the `#body`
 method, and then call `#finish` once you're done with it.
 
-## `body`
+### `body`
 
 Returns the body of the message as a UTF-8 encoded string.
 
-## `attempts`
+### `attempts`
 
 Returns the number of times this message was attempted to be processed. For
 most messages this should be 1 (since it will be your first attempt processing
 them). If it's more than 1, that means that you requeued the message or it
 timed out in flight.
 
-## `#finish`
+### `#finish`
 
 Notify NSQ that you've completed processing of this message.
 
-## `#touch`
+### `#touch`
 
 Tells NSQ to reset the message timeout for this message so you have more time
 to process it.
 
-## `#requeue(timeout = 0)`
+### `#requeue(timeout = 0)`
 
 Tells NSQ to requeue this message. Called with no arguments, this will requeue
 the message and it will be available to be received immediately.
@@ -188,7 +202,7 @@ Optionally you can pass a number of milliseconds as an argument. This tells
 NSQ to delay its requeueing by that number of milliseconds.
 
 
-# Logging
+## Logging
 
 By default, `nsq-ruby` doesn't log anything. To enable logging, use
 `Nsq.logger=` and point it at a Ruby Logger instance. Like this:
@@ -198,7 +212,7 @@ Nsq.logger = Logger.new(STDOUT)
 ```
 
 
-# Requirements
+## Requirements
 
 NSQ v0.2.28 or later (due to IDENTITY metadata specification)
 
@@ -220,7 +234,7 @@ If you need more advanced features, like these, you should check out
 client for Ruby.
 
 
-# Testing
+## Testing
 
 Run the tests like this:
 
