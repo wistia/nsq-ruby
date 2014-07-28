@@ -36,7 +36,7 @@ GEM
     multipart-post (2.0.0)
     nokogiri (1.6.3.1)
       mini_portile (= 0.6.0)
-    nsq-cluster (0.2.5)
+    nsq-cluster (0.2.7)
       sys-proctable
     oauth2 (1.0.0)
       faraday (>= 0.8, < 0.10)
@@ -69,5 +69,5 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 1.0)
   jeweler (~> 2.0.1)
-  nsq-cluster (~> 0.2.5)
+  nsq-cluster (~> 0.2.7)
   rspec (~> 3.0.0)
