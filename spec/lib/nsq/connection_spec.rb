@@ -3,7 +3,6 @@ require_relative '../../spec_helper'
 describe Nsq::Connection do
   before do
     @cluster = NsqCluster.new(nsqd_count: 1)
-    @cluster.block_until_running
     @nsqd = @cluster.nsqd.first
     @connection = Nsq::Connection.new(host: @cluster.nsqd[0].host, port: @cluster.nsqd[0].tcp_port)
   end
@@ -16,7 +15,6 @@ describe Nsq::Connection do
   describe '::new' do
     it 'should raise an exception if it cannot connect to nsqd' do
       @nsqd.stop
-      @nsqd.block_until_stopped
 
       expect{
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)

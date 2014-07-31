@@ -3,7 +3,6 @@ require_relative '../../spec_helper'
 describe Nsq::Discovery do
   before do
     @cluster = NsqCluster.new(nsqd_count: 4, nsqlookupd_count: 2)
-    @cluster.block_until_running
     @topic = 'some-topic'
 
     # make sure each nsqd has a message for this topic

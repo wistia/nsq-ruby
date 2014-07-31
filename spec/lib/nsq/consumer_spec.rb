@@ -5,7 +5,6 @@ require 'timeout'
 describe Nsq::Consumer do
   before do
     @cluster = NsqCluster.new(nsqd_count: 2, nsqlookupd_count: 1)
-    @cluster.block_until_running
   end
 
   after do
@@ -26,7 +25,6 @@ describe Nsq::Consumer do
     describe '::new' do
       it 'should throw an exception when trying to connect to a server that\'s down' do
         @nsqd.stop
-        @nsqd.block_until_stopped
 
         expect{
           new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}")
