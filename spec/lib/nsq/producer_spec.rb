@@ -4,7 +4,6 @@ require 'json'
 describe Nsq::Producer do
   before do
     @cluster = NsqCluster.new(nsqd_count: 1)
-    @cluster.block_until_running
     @nsqd = @cluster.nsqd.first
     @producer = new_producer(@nsqd)
   end
@@ -28,7 +27,6 @@ describe Nsq::Producer do
   describe '::new' do
     it 'should throw an exception when trying to connect to a server that\'s down' do
       @nsqd.stop
-      @nsqd.block_until_stopped
 
       expect{
         new_producer(@nsqd)
@@ -60,7 +58,6 @@ describe Nsq::Producer do
 
     it 'shouldn\'t raise an error when nsqd is down' do
       @nsqd.stop
-      @nsqd.block_until_stopped
 
       expect{
         10.times{@producer.write('fail')}
@@ -69,13 +66,11 @@ describe Nsq::Producer do
 
     it 'will attempt to resend messages when it reconnects to nsqd' do
       @nsqd.stop
-      @nsqd.block_until_stopped
 
       # Write 10 messages while nsqd is down
       10.times{|i| @producer.write(i)}
 
       @nsqd.start
-      @nsqd.block_until_running
 
       messages_received = []
 

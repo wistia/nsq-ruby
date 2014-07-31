@@ -7,7 +7,6 @@ describe Nsq::Consumer do
 
     @nsqd_count = 3
     @cluster = NsqCluster.new(nsqlookupd_count: 2, nsqd_count: @nsqd_count)
-    @cluster.block_until_running
 
     # publish a message to each queue
     # so that when the consumer starts up, it will connect to all of them
@@ -59,11 +58,9 @@ describe Nsq::Consumer do
   it 'should process messages from a new queue when it comes online' do
     nsqd = @cluster.nsqd.last
     nsqd.stop
-    nsqd.block_until_stopped
 
     thread = Thread.new do
       nsqd.start
-      nsqd.block_until_running
       nsqd.pub(TOPIC, 'needle')
     end
 
@@ -84,7 +81,6 @@ describe Nsq::Consumer do
   it 'should be able to rely on the second nsqlookupd if the first dies' do
     bad_lookupd = @cluster.nsqlookupd.first
     bad_lookupd.stop
-    bad_lookupd.block_until_stopped
 
     @cluster.nsqd.first.pub('new-topic', 'new message on new topic')
     consumer = new_consumer(topic: 'new-topic')
@@ -102,8 +98,8 @@ describe Nsq::Consumer do
   it 'should be able to handle all queues going offline and coming back' do
     expected_messages = @cluster.nsqd.map{|nsqd| nsqd.tcp_port.to_s}
 
-    @cluster.nsqd.each { |q| q.stop ; q.block_until_stopped }
-    @cluster.nsqd.each { |q| q.start ; q.block_until_running }
+    @cluster.nsqd.each{|q| q.stop}
+    @cluster.nsqd.each{|q| q.start}
 
     @cluster.nsqd.each_with_index do |nsqd, idx|
       nsqd.pub(TOPIC, expected_messages[idx])
