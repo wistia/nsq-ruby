@@ -70,6 +70,13 @@ def new_producer(nsqd, opts = {})
   }.merge(opts))
 end
 
+def new_lookupd_producer(opts = {})
+  lookupd = @cluster.nsqlookupd.map{|l| "#{l.host}:#{l.http_port}"}
+  Nsq::Producer.new({
+    topic: TOPIC,
+    nsqlookupd: lookupd
+  }.merge(opts))
+end
 # This is for certain spots where we're testing connections going up and down.
 # Don't want these tests to take forever to run!
 def set_speedy_connection_timeouts!

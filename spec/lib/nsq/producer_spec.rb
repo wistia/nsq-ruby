@@ -3,12 +3,12 @@ require 'json'
 
 describe Nsq::Producer do
   before do
-    @cluster = NsqCluster.new(nsqd_count: 1)
+    @cluster = NsqCluster.new(nsqd_count: 1, nsqlookupd_count: 1)
     @nsqd = @cluster.nsqd.first
     @producer = new_producer(@nsqd)
   end
   after do
-    @producer.terminate
+    @producer.terminate if @producer
     @cluster.destroy
   end
 
@@ -32,14 +32,31 @@ describe Nsq::Producer do
         new_producer(@nsqd)
       }.to raise_error
     end
+
+    context 'provided with lookupds' do
+      it 'should have a connection' do
+        lookupd_producer = new_lookupd_producer
+        wait_for {
+          lookupd_producer.connected?
+        }
+        expect(lookupd_producer.connected?).to equal(true)
+      end
+    end
   end
 
   describe '#connected?' do
-    it 'should delegate to Connection#connected?' do
-      connection = @producer.instance_variable_get(:@connection)
-      obj = {}
-      expect(connection).to receive(:connected?).at_least(1).and_return(obj)
-      expect(@producer.connected?).to equal(obj)
+    context 'has a connection' do
+      it 'should return true' do
+        expect(@producer.connected?).to equal(true)
+      end
+    end
+    context 'does not have a connection' do
+      before do
+        @nsqd.stop()
+      end
+      it 'should return false' do
+        expect(@producer.connected?).to equal(false)
+      end
     end
   end
 
@@ -83,6 +100,7 @@ describe Nsq::Producer do
           msg = consumer.pop
           puts msg.body
           messages_received << msg.body
+          puts messages_received
           msg.finish
         end
         consumer.terminate

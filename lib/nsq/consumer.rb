@@ -1,9 +1,10 @@
+require_relative 'client_base'
 require_relative 'connection'
 require_relative 'discovery'
 require_relative 'logger'
 
 module Nsq
-  class Consumer
+  class Consumer < ClientBase
     include Nsq::AttributeLogger
     @@log_attributes = [:topic]
 
@@ -35,7 +36,7 @@ module Nsq
 
       if !@nsqlookupds.empty?
         @discovery = Discovery.new(@nsqlookupds)
-        discover_repeatedly
+        discover_repeatedly(discover_by_topic: true)
       else
         # normally, we find nsqd instances to connect to via nsqlookupd(s)
         # in this case let's connect to an nsqd instance directly
@@ -43,12 +44,6 @@ module Nsq
       end
 
       at_exit{terminate}
-    end
-
-
-    def terminate
-      @discovery_thread.kill if @discovery_thread
-      drop_all_connections
     end
 
 
@@ -65,41 +60,7 @@ module Nsq
 
 
     private
-    def discover_repeatedly
-      @discovery_thread = Thread.new do
-        loop do
-          discover
-          sleep @discovery_interval
-        end
-      end
-      @discovery_thread.abort_on_exception = true
-    end
-
-
-    def discover
-      nsqds = @discovery.nsqds_for_topic(@topic)
-
-      # drop nsqd connections that are no longer in lookupd
-      missing_nsqds = @connections.keys - nsqds
-      missing_nsqds.each do |nsqd|
-        drop_connection(nsqd)
-      end
-
-      # add new ones
-      new_nsqds = nsqds - @connections.keys
-      new_nsqds.each do |nsqd|
-        # Be conservative and start new connections with RDY 1
-        # This helps ensure we don't exceed @max_in_flight across all our
-        # connections momentarily.
-        add_connection(nsqd, 1)
-      end
-
-      # balance RDY state amongst the connections
-      redistribute_ready
-    end
-
-
-    def add_connection(nsqd, max_in_flight)
+    def add_connection(nsqd, max_in_flight = 1)
       info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
       connection = Connection.new(
@@ -114,33 +75,20 @@ module Nsq
       @connections[nsqd] = connection
     end
 
-
-    def drop_connection(nsqd)
-      info "- Dropping connection #{nsqd}"
-      connection = @connections.delete(nsqd)
-      connection.close
-      redistribute_ready
+    # Be conservative, but don't set a connection's max_in_flight below 1
+    def max_in_flight_per_connection(number_of_connections = @connections.length)
+      [@max_in_flight / number_of_connections, 1].max
     end
 
+    def connections_changed
+      redistribute_ready
+    end
 
     def redistribute_ready
       @connections.values.each do |connection|
         connection.max_in_flight = max_in_flight_per_connection
         connection.re_up_ready
       end
-    end
-
-
-    def drop_all_connections
-      @connections.keys.each do |nsqd|
-        drop_connection(nsqd)
-      end
-    end
-
-
-    # Be conservative, but don't set a connection's max_in_flight below 1
-    def max_in_flight_per_connection(number_of_connections = @connections.length)
-      [@max_in_flight / number_of_connections, 1].max
     end
   end
 end
