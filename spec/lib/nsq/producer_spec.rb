@@ -83,11 +83,13 @@ describe Nsq::Producer do
 
     it 'will attempt to resend messages when it reconnects to nsqd' do
       @nsqd.stop
+      sleep 1
 
       # Write 10 messages while nsqd is down
       10.times{|i| @producer.write(i)}
 
       @nsqd.start
+      sleep 1
 
       messages_received = []
 
@@ -100,7 +102,6 @@ describe Nsq::Producer do
           msg = consumer.pop
           puts msg.body
           messages_received << msg.body
-          puts messages_received
           msg.finish
         end
         consumer.terminate
