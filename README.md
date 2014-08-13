@@ -50,7 +50,7 @@ consumer.terminate
 
 ## Producer
 
-### Instantialization
+### Initialization
 
 The Nsq::Producer constructor takes the following options:
 
