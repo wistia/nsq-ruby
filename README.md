@@ -107,7 +107,7 @@ producers when you're done with them.
 
 ## Consumer
 
-### Instantialization
+### Initialization
 
 | Option               | Description                                   | Default            |
 |----------------------|-----------------------------------------------|--------------------|
