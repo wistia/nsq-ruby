@@ -2,6 +2,11 @@ require_relative '../../spec_helper'
 require 'json'
 
 describe Nsq::Producer do
+
+  def new_consumer
+    super(discovery_interval: 0.5)
+  end
+
   before do
     @cluster = NsqCluster.new(nsqd_count: 1, nsqlookupd_count: 1)
     @nsqd = @cluster.nsqd.first
@@ -91,16 +96,19 @@ describe Nsq::Producer do
 
       messages_received = []
 
-      assert_no_timeout(5) do
-        consumer = new_consumer(discovery_interval: 1)
-        # TODO: make the socket fail faster
-        # We only get 8 or 9 of the 10 we send. The first few can be lost
-        # because we can't detect that they didn't make it.
-        8.times do |i|
-          msg = consumer.pop
-          messages_received << msg.body
-          msg.finish
+      begin
+        consumer = new_consumer
+        assert_no_timeout(5) do
+          # TODO: make the socket fail faster
+          # We only get 8 or 9 of the 10 we send. The first few can be lost
+          # because we can't detect that they didn't make it.
+          8.times do |i|
+            msg = consumer.pop
+            messages_received << msg.body
+            msg.finish
+          end
         end
+      ensure
         consumer.terminate
       end
 
@@ -111,7 +119,9 @@ describe Nsq::Producer do
     it 'can send a single message with unicode characters' do
       @producer.write('☺')
       consumer = new_consumer
-      expect(consumer.pop.body).to eq('☺')
+      assert_no_timeout do
+        expect(consumer.pop.body).to eq('☺')
+      end
       consumer.terminate
     end
 
@@ -119,10 +129,12 @@ describe Nsq::Producer do
     it 'can send multiple message with unicode characters' do
       @producer.write('☺', '☺', '☺')
       consumer = new_consumer
-      3.times do
-        msg = consumer.pop
-        expect(msg.body).to eq('☺')
-        msg.finish
+      assert_no_timeout do
+        3.times do
+          msg = consumer.pop
+          expect(msg.body).to eq('☺')
+          msg.finish
+        end
       end
       consumer.terminate
     end

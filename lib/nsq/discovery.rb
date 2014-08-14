@@ -43,16 +43,16 @@ module Nsq
 
     private
 
-    def get_nsqds(lookupd, topic='')
+    def get_nsqds(lookupd, topic = nil)
       uri_scheme = 'http://' unless lookupd.match(%r(https?://))
       uri = URI.parse("#{uri_scheme}#{lookupd}")
 
       uri.query = "ts=#{Time.now.to_i}"
-      if topic.empty?
-        uri.path = '/nodes'
-      else
+      if topic
         uri.path = '/lookup'
         uri.query += "&topic=#{topic}"
+      else
+        uri.path = '/nodes'
       end
 
       begin

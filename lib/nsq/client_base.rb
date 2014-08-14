@@ -59,7 +59,7 @@ module Nsq
       host, port = nsqd.split(':')
       connection = Connection.new(
         host: host,
-        port: port,
+        port: port
       )
       @connections[nsqd] = connection
     end

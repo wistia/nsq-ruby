@@ -22,12 +22,9 @@ module Nsq
         @discovery = Discovery.new(nsqlookupds)
         discover_repeatedly(discover_by_topic: false)
 
-      elsif nsqd = opts[:nsqd]
-        if nsqd.is_a?(String)
-          add_connection(nsqd)
-        elsif nsqd.is_a?(Array)
-          nsqd.each { |d| add_connection(d) }
-        end
+      elsif opts[:nsqd]
+        nsqds = [opts[:nsqd]].flatten
+        nsqds.each{|d| add_connection(d)}
 
       else
         add_connection('127.0.0.1:4150')
