@@ -83,24 +83,21 @@ describe Nsq::Producer do
 
     it 'will attempt to resend messages when it reconnects to nsqd' do
       @nsqd.stop
-      sleep 1
 
       # Write 10 messages while nsqd is down
       10.times{|i| @producer.write(i)}
 
       @nsqd.start
-      sleep 1
 
       messages_received = []
 
       assert_no_timeout(5) do
-        consumer = new_consumer
+        consumer = new_consumer(discovery_interval: 1)
         # TODO: make the socket fail faster
         # We only get 8 or 9 of the 10 we send. The first few can be lost
         # because we can't detect that they didn't make it.
         8.times do |i|
           msg = consumer.pop
-          puts msg.body
           messages_received << msg.body
           msg.finish
         end

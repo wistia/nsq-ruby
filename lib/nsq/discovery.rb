@@ -34,6 +34,7 @@ module Nsq
     #
     #     discovery.nsqds_for_topic('a-topic')
     #     #=> ['127.0.0.1:4150', '127.0.0.1:4152']
+    #
     def nsqds_for_topic(topic)
       @lookupds.map do |lookupd|
         get_nsqds(lookupd, topic)
