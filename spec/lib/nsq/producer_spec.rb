@@ -8,7 +8,7 @@ describe Nsq::Producer do
   end
 
   before do
-    @cluster = NsqCluster.new(nsqd_count: 1, nsqlookupd_count: 1)
+    @cluster = NsqCluster.new(nsqd_count: 2, nsqlookupd_count: 1)
     @nsqd = @cluster.nsqd.first
     @producer = new_producer(@nsqd)
   end
@@ -39,7 +39,7 @@ describe Nsq::Producer do
     end
 
     context 'provided with lookupds' do
-      it 'should have a connection' do
+      it 'should be connected' do
         lookupd_producer = new_lookupd_producer
         wait_for {
           lookupd_producer.connected?
@@ -55,6 +55,7 @@ describe Nsq::Producer do
         expect(@producer.connected?).to equal(true)
       end
     end
+
     context 'does not have a connection' do
       before do
         @nsqd.stop()
@@ -63,9 +64,55 @@ describe Nsq::Producer do
         expect(@producer.connected?).to equal(false)
       end
     end
+
+    describe 'using nsqlookupd' do
+      before do
+        @cluster.nsqd.each { |nsqd| nsqd.stop }
+      end
+
+      context 'no nsqds available' do
+        it 'should have no connections' do
+          lookupd_producer = new_lookupd_producer
+          expect(lookupd_producer.connected?).to equal(false)
+        end
+      end
+
+      context 'one nsqd available' do
+        it 'should connect as nsqds start' do
+          lookupd_producer = new_lookupd_producer
+          @nsqd.start()
+          wait_for {
+            lookupd_producer.connected?
+          }
+          expect(lookupd_producer.connected?).to equal(true)
+        end
+      end
+
+      context 'all nsqds available' do
+        it 'should connect as nsqds start' do
+          lookupd_producer = new_lookupd_producer
+          @cluster.nsqd.each { |nsqd| nsqd.start }
+          wait_for {
+            lookupd_producer.connected?
+          }
+          expect(lookupd_producer.connected?).to equal(true)
+        end
+      end
+    end
   end
 
   describe '#write' do
+    context 'has multiple connections' do
+      it 'writes to a random connection' do
+        lookupd_producer = new_lookupd_producer
+        wait_for {
+          lookupd_producer.connected?
+        }
+        expect_any_instance_of(Nsq::Connection).to receive(:pub)
+        lookupd_producer.write('howdy!')
+      end
+    end
+
     it 'can queue a message' do
       @producer.write('some-message')
       wait_for{message_count==1}
