@@ -19,8 +19,10 @@ module Nsq
       nsqlookupds = []
       if opts[:nsqlookupd]
         nsqlookupds = [opts[:nsqlookupd]].flatten
-        @discovery = Discovery.new(nsqlookupds)
-        discover_repeatedly(discover_by_topic: false)
+        discover_repeatedly(
+          nsqlookupds: nsqlookupds,
+          interval: @discovery_interval
+        )
 
       elsif opts[:nsqd]
         nsqds = [opts[:nsqd]].flatten

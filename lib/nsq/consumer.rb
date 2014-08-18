@@ -1,6 +1,5 @@
 require_relative 'client_base'
 require_relative 'connection'
-require_relative 'discovery'
 require_relative 'logger'
 
 module Nsq
@@ -34,8 +33,11 @@ module Nsq
       @connections = {}
 
       if !@nsqlookupds.empty?
-        @discovery = Discovery.new(@nsqlookupds)
-        discover_repeatedly(discover_by_topic: true)
+        discover_repeatedly(
+          nsqlookupds: @nsqlookupds,
+          topic: @topic,
+          interval: @discovery_interval
+        )
       else
         # normally, we find nsqd instances to connect to via nsqlookupd(s)
         # in this case let's connect to an nsqd instance directly

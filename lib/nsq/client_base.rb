@@ -1,3 +1,5 @@
+require_relative 'discovery'
+
 module Nsq
   class ClientBase
 
@@ -13,32 +15,43 @@ module Nsq
       drop_all_connections
     end
 
+
     private
 
     # discovers nsqds from an nsqlookupd repeatedly
     #
     #   opts:
-    #     discover_by_topic: true
+    #     nsqlookups: ['127.0.0.1:4161'],
+    #     topic: 'topic-to-find-nsqds-for',
+    #     interval: 60
     #
     def discover_repeatedly(opts = {})
       @discovery_thread = Thread.new do
+
+        @discovery = Discovery.new(opts[:nsqlookupds])
+
         loop do
-          discover opts
-          sleep @discovery_interval
+          nsqds = nsqds_from_lookupd(opts[:topic])
+          drop_and_add_connections(nsqds)
+          sleep opts[:interval]
         end
+
       end
+
       @discovery_thread.abort_on_exception = true
     end
 
 
-    def discover(opts)
-      nsqds = nil
-      if opts[:discover_by_topic]
-        nsqds = @discovery.nsqds_for_topic(@topic)
+    def nsqds_from_lookupd(topic = nil)
+      if topic
+        @discovery.nsqds_for_topic(topic)
       else
-        nsqds = @discovery.nsqds
+        @discovery.nsqds
       end
+    end
 
+
+    def drop_and_add_connections(nsqds)
       # drop nsqd connections that are no longer in lookupd
       missing_nsqds = @connections.keys - nsqds
       missing_nsqds.each do |nsqd|
@@ -80,6 +93,7 @@ module Nsq
         drop_connection(nsqd)
       end
     end
+
 
     # optional subclass hook
     def connections_changed
