@@ -1,6 +1,8 @@
 module Nsq
   class ClientBase
 
+    attr_reader :connections
+
     def connected?
       @connections.values.any?(&:connected?)
     end

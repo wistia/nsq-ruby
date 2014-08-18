@@ -35,9 +35,11 @@ module Nsq
 
 
     def write(*raw_messages)
-      # stringify them
+      # stringify the messages
       messages = raw_messages.map(&:to_s)
-      connection = @connections.values.sample
+
+      # get a suitable connection to write to
+      connection = connection_for_write
 
       if messages.length > 1
         connection.mpub(@topic, messages)
@@ -45,5 +47,22 @@ module Nsq
         connection.pub(@topic, messages.first)
       end
     end
+
+
+    private
+    def connection_for_write
+      # Choose a random Connection that's currently connected
+      # Or, if there's nothing connected, just take any random one
+      connections_currently_connected = connections.select{|_,c| c.connected?}
+      connection = connections_currently_connected.values.sample || connections.values.sample
+
+      # Raise an exception if there's no connection available
+      unless connection
+        raise 'No connections available'
+      end
+
+      connection
+    end
+
   end
 end

@@ -11,7 +11,6 @@ module Nsq
     attr_reader :topic
     attr_reader :max_in_flight
     attr_reader :discovery_interval
-    attr_reader :connections
 
     def initialize(opts = {})
       if opts[:nsqlookupd]
