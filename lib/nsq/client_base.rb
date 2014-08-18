@@ -66,7 +66,11 @@ module Nsq
       # add new ones
       new_nsqds = nsqds - @connections.keys
       new_nsqds.each do |nsqd|
-        add_connection(nsqd)
+        begin
+          add_connection(nsqd)
+        rescue Exception => ex
+          error "Failed to connect to nsqd @ #{nsqd}: #{ex}"
+        end
       end
 
       # balance RDY state amongst the connections
@@ -74,13 +78,13 @@ module Nsq
     end
 
 
-    def add_connection(nsqd)
+    def add_connection(nsqd, options = {})
       info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
-      connection = Connection.new(
+      connection = Connection.new({
         host: host,
         port: port
-      )
+      }.merge(options))
       @connections[nsqd] = connection
     end
 

@@ -189,6 +189,20 @@ describe Nsq::Consumer do
         @consumer.pop
       end
     end
+
+
+    describe '#drop_and_add_connections' do
+      context 'lookupd returns nsqd instances that are down' do
+        it 'should log an error and not explode' do
+          # expect an error log call
+          expect(@consumer).to receive(:error)
+
+          expect {
+            @consumer.send(:drop_and_add_connections, ['127.0.0.1:4321'])
+          }.to_not raise_error
+        end
+      end
+    end
   end
 
 

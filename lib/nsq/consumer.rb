@@ -35,7 +35,7 @@ module Nsq
       else
         # normally, we find nsqd instances to connect to via nsqlookupd(s)
         # in this case let's connect to an nsqd instance directly
-        add_connection(opts[:nsqd] || '127.0.0.1:4150', @max_in_flight)
+        add_connection(opts[:nsqd] || '127.0.0.1:4150', max_in_flight: @max_in_flight)
       end
 
       at_exit{terminate}
@@ -55,22 +55,14 @@ module Nsq
 
 
     private
-    # By default be conservative and start new connections with RDY 1.
-    # This helps ensure we don't exceed @max_in_flight across all our
-    # connections momentarily.
-    def add_connection(nsqd, max_in_flight = 1)
-      info "+ Adding connection #{nsqd}"
-      host, port = nsqd.split(':')
-      connection = Connection.new(
-        host: host,
-        port: port,
+    def add_connection(nsqd, options = {})
+      super(nsqd, {
         topic: @topic,
         channel: @channel,
         queue: @messages,
         msg_timeout: @msg_timeout,
-        max_in_flight: max_in_flight
-      )
-      @connections[nsqd] = connection
+        max_in_flight: 1
+      }.merge(options))
     end
 
     # Be conservative, but don't set a connection's max_in_flight below 1
