@@ -1,14 +1,7 @@
 require_relative 'client_base'
-require_relative 'connection'
-require_relative 'logger'
 
 module Nsq
   class Producer < ClientBase
-    include Nsq::AttributeLogger
-    @@log_attributes = [:host, :port, :topic]
-
-    attr_reader :host
-    attr_reader :port
     attr_reader :topic
 
     def initialize(opts = {})

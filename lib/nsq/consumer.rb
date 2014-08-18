@@ -1,15 +1,9 @@
 require_relative 'client_base'
-require_relative 'connection'
-require_relative 'logger'
 
 module Nsq
   class Consumer < ClientBase
-    include Nsq::AttributeLogger
-    @@log_attributes = [:topic]
 
-    attr_reader :topic
     attr_reader :max_in_flight
-    attr_reader :discovery_interval
 
     def initialize(opts = {})
       if opts[:nsqlookupd]
@@ -61,6 +55,9 @@ module Nsq
 
 
     private
+    # By default be conservative and start new connections with RDY 1.
+    # This helps ensure we don't exceed @max_in_flight across all our
+    # connections momentarily.
     def add_connection(nsqd, max_in_flight = 1)
       info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')

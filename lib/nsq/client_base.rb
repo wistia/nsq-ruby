@@ -1,8 +1,13 @@
 require_relative 'discovery'
+require_relative 'connection'
+require_relative 'logger'
 
 module Nsq
   class ClientBase
+    include Nsq::AttributeLogger
+    @@log_attributes = [:topic]
 
+    attr_reader :topic
     attr_reader :connections
 
     def connected?
