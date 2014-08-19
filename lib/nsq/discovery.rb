@@ -14,27 +14,47 @@ module Nsq
       @lookupds = lookupds
     end
 
-    # Given a topic, returns an array of nsqds instances that have messages for
+    # Returns an array of nsqds instances
+    #
+    # nsqd instances returned are strings in this format: '<host>:<tcp-port>'
+    #
+    #     discovery.nsqds
+    #     #=> ['127.0.0.1:4150', '127.0.0.1:4152']
+    #
+    def nsqds
+      @lookupds.map do |lookupd|
+        get_nsqds(lookupd)
+      end.flatten.uniq
+    end
+
+    # Returns an array of nsqds instances that have messages for
     # that topic.
     #
     # nsqd instances returned are strings in this format: '<host>:<tcp-port>'
     #
-    #     discovery.nsqds_for_topic('some-topic')
+    #     discovery.nsqds_for_topic('a-topic')
     #     #=> ['127.0.0.1:4150', '127.0.0.1:4152']
     #
     def nsqds_for_topic(topic)
       @lookupds.map do |lookupd|
-        get_nsqds_for_topic(lookupd, topic)
+        get_nsqds(lookupd, topic)
       end.flatten.uniq
     end
 
-
     private
 
-    def get_nsqds_for_topic(lookupd, topic)
-      uri = URI.parse("http://#{lookupd}")
-      uri.path = '/lookup'
-      uri.query = "topic=#{topic}&ts=#{Time.now.to_i}"
+    def get_nsqds(lookupd, topic = nil)
+      uri_scheme = 'http://' unless lookupd.match(%r(https?://))
+      uri = URI.parse("#{uri_scheme}#{lookupd}")
+
+      uri.query = "ts=#{Time.now.to_i}"
+      if topic
+        uri.path = '/lookup'
+        uri.query += "&topic=#{topic}"
+      else
+        uri.path = '/nodes'
+      end
+
       begin
         body = Net::HTTP.get(uri)
         data = JSON.parse(body)

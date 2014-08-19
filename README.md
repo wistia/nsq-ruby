@@ -58,8 +58,9 @@ The Nsq::Producer constructor takes the following options:
 |---------------|----------------------------------------|--------------------|
 | `topic`       | Topic to which to publish messages     |                    |
 | `nsqd`        | Host and port of the nsqd instance     | '127.0.0.1:4150'   |
+| `nsqlookupd`  | Use lookupd to automatically discover nsqds |               |
 
-For example:
+For example, if you'd like to publish messages to a single nsqd.
 
 ```Ruby
 producer = Nsq::Producer.new(
@@ -67,6 +68,19 @@ producer = Nsq::Producer.new(
   topic: 'topic-of-great-esteem'
 )
 ```
+
+Alternatively, you can use nsqlookupd to find all nsqd nodes in the cluster.
+When you instantiate Nsq::Producer in this way, it will automatically maintain
+connections to all nsqd instances. When you publish a message, it will be sent
+to a random nsqd instance.
+
+```Ruby
+producer = Nsq::Producer.new(
+  nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
+  topic: 'topic-of-great-esteem'
+)
+```
+
 
 ### `#write`
 
