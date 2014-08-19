@@ -266,6 +266,13 @@ VERBOSE=true rake spec
 ```
 
 
+## Authors
+
+- Robby Grossman (@freerobby)
+- Brendan Schwartz (@bschwartz)
+- Marshall Moutenot (@mmoutenot)
+
+
 ## MIT License
 
 Copyright (C) 2014 Wistia, Inc.
