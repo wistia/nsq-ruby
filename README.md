@@ -237,6 +237,7 @@ connection timeout support (0.2.29).
 
 - Discovery via nsqlookupd
 - Automatic reconnection to nsqd
+- Producing to all nsqd instances automatically via nsqlookupd
 
 ### Does not support
 
@@ -264,6 +265,13 @@ going on?
 ```
 VERBOSE=true rake spec
 ```
+
+
+## Is this production ready?
+
+Yes! It's used in several critical parts of our infrastructure at
+[Wistia](http://wistia.com) and currently produces and consumes tens of
+millions of messages a day.
 
 
 ## Authors
