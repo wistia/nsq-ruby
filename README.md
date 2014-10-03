@@ -199,6 +199,10 @@ most messages this should be 1 (since it will be your first attempt processing
 them). If it's more than 1, that means that you requeued the message or it
 timed out in flight.
 
+### `timestamp`
+
+Returns the time this message was originally sent to NSQ as a `Time` object.
+
 ### `#finish`
 
 Notify NSQ that you've completed processing of this message.
