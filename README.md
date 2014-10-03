@@ -5,6 +5,7 @@ nsq-ruby is a simple NSQ client library written in Ruby.
 - The code is straightforward.
 - It has no dependencies.
 - It's well tested.
+- It's being used in production and has processed billions of messages.
 
 
 ## Quick start
@@ -198,6 +199,10 @@ Returns the number of times this message was attempted to be processed. For
 most messages this should be 1 (since it will be your first attempt processing
 them). If it's more than 1, that means that you requeued the message or it
 timed out in flight.
+
+### `timestamp`
+
+Returns the time this message was originally sent to NSQ as a `Time` object.
 
 ### `#finish`
 
