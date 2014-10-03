@@ -5,6 +5,7 @@ nsq-ruby is a simple NSQ client library written in Ruby.
 - The code is straightforward.
 - It has no dependencies.
 - It's well tested.
+- It's being used in production and has processed billions of messages.
 
 
 ## Quick start
