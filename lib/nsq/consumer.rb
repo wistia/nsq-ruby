@@ -19,7 +19,7 @@ module Nsq
       @msg_timeout = opts[:msg_timeout]
 
       # This is where we queue up the messages we receive from each connection
-      @messages = Queue.new
+      @messages = opts[:queue] || Queue.new
 
       # This is where we keep a record of our active nsqd connections
       # The key is a string with the host and port of the instance (e.g.
