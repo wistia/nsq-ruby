@@ -137,21 +137,12 @@ module Nsq
     end
 
 
-    # Block until we get an OK from nsqd
-    def wait_for_ok
-      frame = receive_frame
-      unless frame.is_a?(Response) && frame.data == RESPONSE_OK
-        raise "Received non-OK response while IDENTIFYing: #{frame.data}"
-      end
-    end
-
-
     def identify
       hostname = Socket.gethostname
       metadata = {
         client_id: Socket.gethostbyname(hostname).flatten.compact.first,
         hostname: hostname,
-        feature_negotiation: false,
+        feature_negotiation: true,
         heartbeat_interval: 30_000, # 30 seconds
         output_buffer: 16_000, # 16kb
         output_buffer_timeout: 250, # 250ms
@@ -163,6 +154,16 @@ module Nsq
         msg_timeout: @msg_timeout
       }.to_json
       write_to_socket ["IDENTIFY\n", metadata.length, metadata].pack('a*l>a*')
+
+      # Now wait for the response!
+      frame = receive_frame
+      server = JSON.parse(frame.data)
+
+      if @max_in_flight > server['max_rdy_count']
+        raise "max_in_flight is set to #{@max_in_flight}, server only supports #{server['max_rdy_count']}"
+      end
+
+      @server_version = server['version']
     end
 
 
@@ -199,10 +200,11 @@ module Nsq
     def decrement_in_flight
       @presumed_in_flight -= 1
 
-      # now that we're less than @max_in_flight we might need to re-up our RDY
-      # state
-      threshold = (@max_in_flight * 0.2).ceil
-      re_up_ready if @presumed_in_flight <= threshold
+      if server_needs_rdy_re_ups?
+        # now that we're less than @max_in_flight we might need to re-up our RDY state
+        threshold = (@max_in_flight * 0.2).ceil
+        re_up_ready if @presumed_in_flight <= threshold
+      end
     end
 
 
@@ -312,7 +314,6 @@ module Nsq
       # it gets to nsqd ahead of anything in the `@write_queue`
       write_to_socket '  V2'
       identify
-      wait_for_ok
 
       start_read_loop
       start_write_loop
@@ -387,5 +388,14 @@ module Nsq
     def snooze(t)
       sleep(t)
     end
+
+
+    def server_needs_rdy_re_ups?
+      # versions less than 0.3.0 need RDY re-ups
+      # see: https://github.com/bitly/nsq/blob/master/ChangeLog.md#030---2014-11-18
+      @server_version.split('.')[0].to_i == 0 && @server_version.split('.')[1].to_i <= 2
+    end
+
+
   end
 end
