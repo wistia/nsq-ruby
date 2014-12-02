@@ -200,10 +200,11 @@ module Nsq
     def decrement_in_flight
       @presumed_in_flight -= 1
 
-      # now that we're less than @max_in_flight we might need to re-up our RDY
-      # state
-      threshold = (@max_in_flight * 0.2).ceil
-      re_up_ready if @presumed_in_flight <= threshold
+      if server_needs_rdy_re_ups?
+        # now that we're less than @max_in_flight we might need to re-up our RDY state
+        threshold = (@max_in_flight * 0.2).ceil
+        re_up_ready if @presumed_in_flight <= threshold
+      end
     end
 
 
@@ -387,5 +388,14 @@ module Nsq
     def snooze(t)
       sleep(t)
     end
+
+
+    def server_needs_rdy_re_ups?
+      # versions less than 0.3.0 need RDY re-ups
+      # see: https://github.com/bitly/nsq/blob/master/ChangeLog.md#030---2014-11-18
+      @server_version.split('.')[0].to_i == 0 && @server_version.split('.')[1].to_i <= 2
+    end
+
+
   end
 end
