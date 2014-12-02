@@ -129,21 +129,12 @@ module Nsq
     end
 
 
-    # Block until we get an OK from nsqd
-    def wait_for_ok
-      frame = receive_frame
-      unless frame.is_a?(Response) && frame.data == RESPONSE_OK
-        raise "Received non-OK response while IDENTIFYing: #{frame.data}"
-      end
-    end
-
-
     def identify
       hostname = Socket.gethostname
       metadata = {
         client_id: Socket.gethostbyname(hostname).flatten.compact.first,
         hostname: hostname,
-        feature_negotiation: false,
+        feature_negotiation: true,
         heartbeat_interval: 30_000, # 30 seconds
         output_buffer: 16_000, # 16kb
         output_buffer_timeout: 250, # 250ms
@@ -155,6 +146,16 @@ module Nsq
         msg_timeout: @msg_timeout
       }.to_json
       write_to_socket ["IDENTIFY\n", metadata.length, metadata].pack('a*l>a*')
+
+      # Now wait for the response!
+      frame = receive_frame
+      server = JSON.parse(frame.data)
+
+      if @max_in_flight > server['max_rdy_count']
+        raise "max_in_flight is set to #{@max_in_flight}, server only supports #{server['max_rdy_count']}"
+      end
+
+      @server_version = server['version']
     end
 
 
@@ -294,7 +295,6 @@ module Nsq
       # it gets to nsqd ahead of anything in the `@write_queue`
       write_to_socket '  V2'
       identify
-      wait_for_ok
 
       start_read_loop
       start_write_loop
