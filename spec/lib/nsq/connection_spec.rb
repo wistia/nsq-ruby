@@ -27,6 +27,13 @@ describe Nsq::Connection do
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.http_port)
       }.to raise_error
     end
+
+    it 'should raise an exception if max_in_flight is above what the server supports' do
+      expect{
+        # try to connect to the HTTP port instead of TCP
+        Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port, max_in_flight: 1_000_000)
+      }.to raise_error
+    end
   end
 
 
