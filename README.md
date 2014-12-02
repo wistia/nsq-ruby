@@ -234,8 +234,8 @@ Nsq.logger = Logger.new(STDOUT)
 
 ## Requirements
 
-NSQ v0.3.0 or later because we don't send RDY back to the server periodically
-per this change: https://github.com/bitly/nsq/blob/master/ChangeLog.md#030---2014-11-18
+NSQ v0.2.29 or later due for IDENTITY metadata specification (0.2.28) and per-
+connection timeout support (0.2.29).
 
 
 ### Supports

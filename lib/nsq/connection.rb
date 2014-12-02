@@ -15,6 +15,7 @@ module Nsq
     attr_reader :host
     attr_reader :port
     attr_accessor :max_in_flight
+    attr_reader :presumed_in_flight
 
     USER_AGENT = "nsq-ruby/#{Nsq::Version::STRING}"
     RESPONSE_HEARTBEAT = '_heartbeat_'
@@ -43,6 +44,7 @@ module Nsq
       @death_queue = Queue.new
 
       @connected = false
+      @presumed_in_flight = 0
 
       open_connection
       start_monitoring_connection
@@ -73,11 +75,13 @@ module Nsq
 
     def fin(message_id)
       write "FIN #{message_id}\n"
+      decrement_in_flight
     end
 
 
     def req(message_id, timeout)
       write "REQ #{message_id} #{timeout}\n"
+      decrement_in_flight
     end
 
 
@@ -103,6 +107,10 @@ module Nsq
     # Tell the server we are ready for more messages!
     def re_up_ready
       rdy(@max_in_flight)
+      # assume these messages are coming our way. yes, this might not be the
+      # case, but it's much easier to manage our RDY state with the server if
+      # we treat things this way.
+      @presumed_in_flight = @max_in_flight
     end
 
 
@@ -186,6 +194,16 @@ module Nsq
     def frame_class_for_type(type)
       raise "Bad frame type specified: #{type}" if type > FRAME_CLASSES.length - 1
       [Response, Error, Message][type]
+    end
+
+
+    def decrement_in_flight
+      @presumed_in_flight -= 1
+
+      # now that we're less than @max_in_flight we might need to re-up our RDY
+      # state
+      threshold = (@max_in_flight * 0.2).ceil
+      re_up_ready if @presumed_in_flight <= threshold
     end
 
 
