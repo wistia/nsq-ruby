@@ -393,7 +393,8 @@ module Nsq
     def server_needs_rdy_re_ups?
       # versions less than 0.3.0 need RDY re-ups
       # see: https://github.com/bitly/nsq/blob/master/ChangeLog.md#030---2014-11-18
-      @server_version.split('.')[0].to_i == 0 && @server_version.split('.')[1].to_i <= 2
+      major, minor, patch = @server_version.split('.').map(&:to_i)
+      major == 0 && minor <= 2
     end
 
 
