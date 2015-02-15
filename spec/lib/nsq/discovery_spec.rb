@@ -90,4 +90,28 @@ describe Nsq::Discovery do
       end
     end
   end
+
+
+  describe 'when all lookupds are down' do
+    before do
+      @cluster.nsqlookupd.each(&:stop)
+      @discovery = new_discovery(@cluster.nsqlookupd)
+    end
+
+    describe '#nsqds' do
+      it 'throws an exception' do
+        expect {
+          @discovery.nsqds
+        }.to raise_error(Nsq::DiscoveryException)
+      end
+    end
+
+    describe '#nsqds_for_topic' do
+      it 'throws an exception' do
+        expect {
+          @discovery.nsqds_for_topic(@topic)
+        }.to raise_error(Nsq::DiscoveryException)
+      end
+    end
+  end
 end

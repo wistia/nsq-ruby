@@ -21,10 +21,12 @@ module Nsq
     #     discovery.nsqds
     #     #=> ['127.0.0.1:4150', '127.0.0.1:4152']
     #
+    # If all nsqlookupd's are unreachable, raises Nsq::DiscoveryException
+    #
     def nsqds
-      @lookupds.map do |lookupd|
+      gather_nsqds_from_all_lookupds do |lookupd|
         get_nsqds(lookupd)
-      end.flatten.uniq
+      end
     end
 
     # Returns an array of nsqds instances that have messages for
@@ -35,14 +37,32 @@ module Nsq
     #     discovery.nsqds_for_topic('a-topic')
     #     #=> ['127.0.0.1:4150', '127.0.0.1:4152']
     #
+    # If all nsqlookupd's are unreachable, raises Nsq::DiscoveryException
+    #
     def nsqds_for_topic(topic)
-      @lookupds.map do |lookupd|
+      gather_nsqds_from_all_lookupds do |lookupd|
         get_nsqds(lookupd, topic)
-      end.flatten.uniq
+      end
     end
+
 
     private
 
+    def gather_nsqds_from_all_lookupds
+      nsqd_list = @lookupds.map do |lookupd|
+        yield(lookupd)
+      end.flatten
+
+      # All nsqlookupds were unreachable, raise an error!
+      if nsqd_list.length > 0 && nsqd_list.all? { |nsqd| nsqd.nil? }
+        raise DiscoveryException
+      end
+
+      nsqd_list.compact.uniq
+    end
+
+    # Returns an array of nsqd addresses
+    # If there's an error, return nil
     def get_nsqds(lookupd, topic = nil)
       uri_scheme = 'http://' unless lookupd.match(%r(https?://))
       uri = URI.parse("#{uri_scheme}#{lookupd}")
@@ -68,7 +88,7 @@ module Nsq
         end
       rescue Exception => e
         error "Error during discovery for #{lookupd}: #{e}"
-        []
+        nil
       end
     end
 

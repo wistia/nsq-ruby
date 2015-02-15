@@ -36,8 +36,14 @@ module Nsq
         @discovery = Discovery.new(opts[:nsqlookupds])
 
         loop do
-          nsqds = nsqds_from_lookupd(opts[:topic])
-          drop_and_add_connections(nsqds)
+          begin
+            nsqds = nsqds_from_lookupd(opts[:topic])
+            drop_and_add_connections(nsqds)
+          rescue DiscoveryException
+            # We can't connect to any nsqlookupds. That's okay, we'll just
+            # leave our current nsqd connections alone and try again later.
+            warn 'Could not connect to any nsqlookupd instances in discovery loop'
+          end
           sleep opts[:interval]
         end
 
