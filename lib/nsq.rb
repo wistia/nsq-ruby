@@ -2,6 +2,8 @@ require_relative 'version'
 
 require_relative 'nsq/logger'
 
+require_relative 'nsq/exceptions'
+
 require_relative 'nsq/frames/frame'
 require_relative 'nsq/frames/error'
 require_relative 'nsq/frames/response'
