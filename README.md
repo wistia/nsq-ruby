@@ -144,7 +144,7 @@ consumer = Nsq::Consumer.new(
   nsqlookupd: ['127.0.0.1:4161', '4.5.6.7:4161'],
   max_in_flight: 100,
   discovery_interval: 30,
-  msq_timeout: 120_000
+  msg_timeout: 120_000
 )
 ```
 
