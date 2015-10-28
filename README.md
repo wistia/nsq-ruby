@@ -85,7 +85,7 @@ producer = Nsq::Producer.new(
 
 ### `#write`
 
-Publishes one or more message to nsqd. If you give it a single argument, it will
+Publishes one or more messages to nsqd. If you give it a single argument, it will
 send it to nsqd via `PUB`. If you give it multiple arguments, it will send all
 those messages to nsqd via `MPUB`. It will automatically call `to_s` on any
 arguments you give it.
@@ -106,6 +106,22 @@ and transmitted after reconnecting.
 connection to nsqd fails, you can lose messages. This is acceptable for our use
 cases, mostly because we are sending messages to a local nsqd instance and
 failure is very rare.
+
+
+### `#write_to_topic`
+
+Publishes one or more messages to nsqd. Like `#write`, but allows you to specify
+the topic. Use this method if you want a single producer instance to write to
+multiple topics.
+
+```Ruby
+# Send a single message via PUB to the topic 'rutabega'
+producer.write_to_topic('rutabega', 123)
+
+# Send multiple messages via MPUB to the topic 'kohlrabi'
+producer.write_to_topic('kohlrabi', 'a', 'b', 'c')
+```
+
 
 ### `#connected?`
 

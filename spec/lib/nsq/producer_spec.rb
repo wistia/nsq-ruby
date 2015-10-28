@@ -3,9 +3,9 @@ require 'json'
 
 describe Nsq::Producer do
 
-  def message_count
+  def message_count(topic = @producer.topic)
     topics_info = JSON.parse(@nsqd.stats.body)['data']['topics']
-    topic_info = topics_info.select{|t| t['topic_name'] == @producer.topic }.first
+    topic_info = topics_info.select{|t| t['topic_name'] == topic }.first
     if topic_info
       topic_info['message_count']
     else
@@ -130,6 +130,27 @@ describe Nsq::Producer do
           end
         end
         consumer.terminate
+      end
+
+    end
+
+    describe '#write_to_topic' do
+      it 'can queue a single message for a topic' do
+        @producer.write_to_topic('topic-a', 'some-message')
+        @producer.write_to_topic('topic-b', 'some-message')
+        wait_for{message_count('topic-a')==1}
+        wait_for{message_count('topic-b')==1}
+        expect(message_count('topic-a')).to eq(1)
+        expect(message_count('topic-b')).to eq(1)
+      end
+
+      it 'can queue multiple messages at once for a topic' do
+        @producer.write_to_topic('topic-a', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        @producer.write_to_topic('topic-b', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        wait_for{message_count('topic-a')==10}
+        wait_for{message_count('topic-b')==10}
+        expect(message_count('topic-a')).to eq(10)
+        expect(message_count('topic-b')).to eq(10)
       end
     end
 

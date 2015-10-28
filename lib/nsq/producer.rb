@@ -6,7 +6,7 @@ module Nsq
 
     def initialize(opts = {})
       @connections = {}
-      @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
+      @topic = opts[:topic]
       @discovery_interval = opts[:discovery_interval] || 60
 
       nsqlookupds = []
@@ -30,6 +30,15 @@ module Nsq
 
 
     def write(*raw_messages)
+      if !@topic
+        raise 'No topic specified. Either specify a topic when instantiating the Producer or use write_to_topic.'
+      end
+
+      write_to_topic(@topic, *raw_messages)
+    end
+
+
+    def write_to_topic(topic, *raw_messages)
       # stringify the messages
       messages = raw_messages.map(&:to_s)
 
@@ -37,9 +46,9 @@ module Nsq
       connection = connection_for_write
 
       if messages.length > 1
-        connection.mpub(@topic, messages)
+        connection.mpub(topic, messages)
       else
-        connection.pub(@topic, messages.first)
+        connection.pub(topic, messages.first)
       end
     end
 
