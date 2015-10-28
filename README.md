@@ -98,7 +98,7 @@ producer.write(123)
 producer.write(456, 'another-message', { key: 'value' }.to_json)
 ```
 
-If it's connection to nsqd fails, it will automatically try to reconnect with
+If its connection to nsqd fails, it will automatically try to reconnect with
 exponential backoff. Any messages that were sent to `#write` will be queued
 and transmitted after reconnecting.
 
