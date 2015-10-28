@@ -15,9 +15,9 @@ describe Nsq::Producer do
 
   context 'connecting directly to a single nsqd' do
 
-    def new_consumer
+    def new_consumer(topic = TOPIC)
       Nsq::Consumer.new(
-        topic: TOPIC,
+        topic: topic,
         channel: CHANNEL,
         nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}",
         max_in_flight: 1
@@ -152,10 +152,42 @@ describe Nsq::Producer do
         expect(message_count('topic-a')).to eq(10)
         expect(message_count('topic-b')).to eq(10)
       end
+
+      it 'puts correct messages on correct topics' do
+        consumer_a = new_consumer('topic-a')
+        consumer_b = new_consumer('topic-b')
+
+        @producer.write_to_topic('topic-a', 1, 2)
+        @producer.write_to_topic('topic-b', 3, 4)
+        @producer.write_to_topic('topic-a', 5)
+
+        wait_for{message_count('topic-a') == 3}
+        wait_for{message_count('topic-b') == 2}
+
+        a_msgs = [1, 2, 5].map{|i| i.to_s}
+        b_msgs = [3, 4].map{|i| i.to_s}
+        3.times do
+          a = consumer_a.pop
+          expect(a_msgs).to include(a.body)
+          a_msgs.delete(a.body)
+          a.finish
+        end
+        2.times do
+          b = consumer_b.pop
+          expect(b_msgs).to include(b.body)
+          b_msgs.delete(b.body)
+          b.finish
+        end
+
+        expect(consumer_a.size).to eq(0)
+        expect(consumer_b.size).to eq(0)
+
+        consumer_a.terminate
+        consumer_b.terminate
+      end
     end
 
   end
-
 
   context 'connecting via nsqlookupd' do
 
