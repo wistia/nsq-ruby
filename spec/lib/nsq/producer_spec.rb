@@ -164,8 +164,8 @@ describe Nsq::Producer do
         wait_for{message_count('topic-a') == 3}
         wait_for{message_count('topic-b') == 2}
 
-        a_msgs = [1, 2, 5].map{|i| i.to_s}
-        b_msgs = [3, 4].map{|i| i.to_s}
+        a_msgs = [1, 2, 5].map(&:to_s)
+        b_msgs = [3, 4].map(&:to_s)
         3.times do
           a = consumer_a.pop
           expect(a_msgs).to include(a.body)
