@@ -185,6 +185,12 @@ describe Nsq::Producer do
         consumer_a.terminate
         consumer_b.terminate
       end
+
+      it 'works if you pass it a symbol for topic' do
+        @producer.write_to_topic(:hello, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        wait_for{message_count('hello')==10}
+        expect(message_count('hello')).to eq(10)
+      end
     end
 
   end
