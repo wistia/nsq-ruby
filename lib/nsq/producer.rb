@@ -39,6 +39,9 @@ module Nsq
 
 
     def write_to_topic(topic, *raw_messages)
+      # return error if message(s) not provided
+      raise ArgumentError, 'message not provided' if raw_messages.empty?
+
       # stringify the messages
       messages = raw_messages.map(&:to_s)
 

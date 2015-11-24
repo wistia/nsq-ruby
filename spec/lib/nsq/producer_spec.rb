@@ -135,6 +135,10 @@ describe Nsq::Producer do
     end
 
     describe '#write_to_topic' do
+      it 'returns an ArgumentError if no messages provided' do
+        expect { @producer.write_to_topic('topic-a') }.to raise_error(ArgumentError)
+      end
+
       it 'can queue a single message for a topic' do
         @producer.write_to_topic('topic-a', 'some-message')
         @producer.write_to_topic('topic-b', 'some-message')
