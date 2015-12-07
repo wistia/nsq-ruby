@@ -191,16 +191,19 @@ Be aware, while `Consumer#pop` is blocking, your process will be unresponsive.
 This can be a problem in certain cases -- like if you're trying to gracefully
 restart a worker process by sending it a `TERM` signal.
 
+You can call `Consumer#pop(true)` to retrieve from the queue in non_block mode,
+which will throw a ThreadError instead of blocking if the queue is empty.
+
 If you're consuming from a low-volume topic and don't want to get stuck in a
 blocking state, use a pattern like this:
 
 ```Ruby
 loop do
-  if consumer.size > 0
-    msg = consumer.pop
+  begin
+    msg = @messages.pop(true) # non_block=true
     # do something
     msg.finish
-  else
+  rescue ThreadError # thrown by Queue#pop(non_block=true) when the queue is empty
     # wait for a bit before checking for new messages
     sleep 0.01
   end

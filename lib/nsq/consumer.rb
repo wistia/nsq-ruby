@@ -43,8 +43,14 @@ module Nsq
 
 
     # pop the next message off the queue
-    def pop
-      @messages.pop
+    def pop(non_block=false)
+      # By default, if the internal queue is empty, pop will block until
+      # a new message comes in.
+      #
+      # With non_block=true, if the internal queue is empty, it will raise a
+      # ThreadError instead of blocking.
+
+      @messages.pop(non_block)
     end
 
 
