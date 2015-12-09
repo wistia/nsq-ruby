@@ -187,6 +187,26 @@ message = consumer.pop
 If there are messages on the queue, `pop` will return one immediately. If there
 are no messages on the queue, `pop` will block execution until one arrives.
 
+Be aware, while `Consumer#pop` is blocking, your process will be unresponsive.
+This can be a problem in certain cases -- like if you're trying to gracefully
+restart a worker process by sending it a `TERM` signal.
+
+If you're consuming from a low-volume topic and don't want to get stuck in a
+blocking state, use a pattern like this:
+
+```Ruby
+loop do
+  if consumer.size > 0
+    msg = consumer.pop
+    # do something
+    msg.finish
+  else
+    # wait for a bit before checking for new messages
+    sleep 0.01
+  end
+end
+```
+
 
 ### `#size`
 
