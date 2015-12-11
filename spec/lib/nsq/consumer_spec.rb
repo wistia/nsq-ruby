@@ -155,14 +155,16 @@ describe Nsq::Consumer do
       expect(msg1.body).to eq('slow')
       expect(msg1.attempts).to eq(1)
 
-      # wait for it to be reclaimed by nsqd and then finish it so we can get
-      # another. this fin won't actually succeed, because the message is no
-      # longer in flight
-      sleep(@msg_timeout + 0.1)
-      sleep 60
-      msg1.finish
+      # NOTE: In nsqd 0.3.6, the introduction of the centralized queue instead
+      # of per channel workers also brought a 5 second
+      # `QueueScanRefreshInterval`. So even though we set `msg_timeout` to 1
+      # second, our messages won't be requeued any faster than 5 seconds.
+      #
+      # https://github.com/nsqio/nsq/blob/v0.3.6/nsqd/options.go#L104
 
-      assert_no_timeout do
+      # Wait for our message to be reclaimed by nsqd and then finish it so we
+      # can get another.
+      assert_no_timeout(10) do
         msg2 = @consumer.pop
         expect(msg2.body).to eq('slow')
         expect(msg2.attempts).to eq(2)
