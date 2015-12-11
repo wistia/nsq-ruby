@@ -89,13 +89,19 @@ describe Nsq::Producer do
 
         messages_received = []
 
+        # NOTE:
+        # We only get a handful of the 10 we send. The first few can be lost
+        # because we can't detect that they didn't make it because the socket
+        # won't throw an error on write, right away.
+        #
+        # We might want to add the ability to do synchronous writes and wait
+        # for the OK from NSQ if we want to make sure messages make it.
+        expected_message_count = 5
+
         begin
           consumer = new_consumer
           assert_no_timeout(5) do
-            # TODO: make the socket fail faster
-            # We only get 8 or 9 of the 10 we send. The first few can be lost
-            # because we can't detect that they didn't make it.
-            8.times do |i|
+            expected_message_count.times do |i|
               msg = consumer.pop
               messages_received << msg.body
               msg.finish
@@ -105,7 +111,7 @@ describe Nsq::Producer do
           consumer.terminate
         end
 
-        expect(messages_received.uniq.length).to eq(8)
+        expect(messages_received.uniq.length).to eq(expected_message_count)
       end
 
       # Test PUB

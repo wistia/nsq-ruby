@@ -159,6 +159,7 @@ describe Nsq::Consumer do
       # another. this fin won't actually succeed, because the message is no
       # longer in flight
       sleep(@msg_timeout + 0.1)
+      sleep 60
       msg1.finish
 
       assert_no_timeout do
