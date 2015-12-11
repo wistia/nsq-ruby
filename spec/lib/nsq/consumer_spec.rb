@@ -68,6 +68,18 @@ describe Nsq::Consumer do
         @nsqd.pub(@consumer.topic, '☺')
         expect(@consumer.pop.body).to eq('☺')
       end
+
+      it 'blocks when there are no messages and non_block=false' do
+        assert_timeout do
+          @consumer.pop
+        end
+      end
+
+      it 'raises a ThreadError and does not block when there are no messages and non_block=true' do
+        assert_no_timeout(1) do
+          expect { @consumer.pop(true) }.to raise_error(ThreadError)
+        end
+      end
     end
 
 
