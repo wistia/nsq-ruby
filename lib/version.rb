@@ -1,7 +1,7 @@
 module Nsq
   module Version
     MAJOR = 1
-    MINOR = 4
+    MINOR = 5
     PATCH = 0
     BUILD = nil
     STRING = [MAJOR, MINOR, PATCH, BUILD].compact.join('.')
