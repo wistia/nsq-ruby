@@ -187,23 +187,26 @@ message = consumer.pop
 If there are messages on the queue, `pop` will return one immediately. If there
 are no messages on the queue, `pop` will block execution until one arrives.
 
-Be aware, while `Consumer#pop` is blocking, your process will be unresponsive.
-This can be a problem in certain cases -- like if you're trying to gracefully
-restart a worker process by sending it a `TERM` signal.
+Be aware, while `#pop` is blocking, your process will be unresponsive.  This
+can be a problem in certain cases, like if you're trying to gracefully restart
+a worker process by sending it a `TERM` signal. See `#pop_without_blocking` for
+information on how to mitigate this issue.
 
-You can call `Consumer#pop(true)` to retrieve from the queue in non_block mode,
-which will throw a ThreadError instead of blocking if the queue is empty.
+
+### `#pop_without_blocking`
+
+This is just like `#pop` except it doesn't block. It always returns immediately.
+If there are no messages in the queue, it will return `nil`.
 
 If you're consuming from a low-volume topic and don't want to get stuck in a
-blocking state, use a pattern like this:
+blocking state, you can use this method to consume messages like so:
 
 ```Ruby
 loop do
-  begin
-    msg = @messages.pop(true) # non_block=true
+  if msg = @messages.pop_without_blocking
     # do something
     msg.finish
-  rescue ThreadError # thrown by Queue#pop(non_block=true) when the queue is empty
+  else
     # wait for a bit before checking for new messages
     sleep 0.01
   end
