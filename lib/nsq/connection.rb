@@ -140,7 +140,7 @@ module Nsq
     def identify
       hostname = Socket.gethostname
       metadata = {
-        client_id: Socket.gethostbyname(hostname).flatten.compact.first,
+        client_id: hostname,
         hostname: hostname,
         feature_negotiation: true,
         heartbeat_interval: 30_000, # 30 seconds
