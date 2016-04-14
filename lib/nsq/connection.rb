@@ -30,6 +30,8 @@ module Nsq
       @channel = opts[:channel]
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
       @max_in_flight = opts[:max_in_flight] || 1
+      @ssl_context = opts[:ssl_context]
+      validate_ssl_context! if @ssl_context
 
       if @msg_timeout < 1000
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
@@ -398,5 +400,18 @@ module Nsq
     end
 
 
+    def validate_ssl_context!
+      [:key, :certificate].each do |key|
+        unless @ssl_context.has_key?(key)
+          raise ArgumentError.new "ssl_context requires a :#{key}"
+        end
+      end
+
+      [:key, :certificate, :ca_certificate].each do |key|
+        if @ssl_context[key] && !File.readable?(@ssl_context[key])
+          raise LoadError.new "ssl_context :#{key} is unreadable"
+        end
+      end
+    end
   end
 end
