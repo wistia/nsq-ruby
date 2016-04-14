@@ -24,7 +24,7 @@ module Nsq
 
     def initialize(opts = {})
       @host = opts[:host] || (raise ArgumentError, 'host is required')
-      @port = opts[:port] || (raise ArgumentError, 'host is required')
+      @port = opts[:port] || (raise ArgumentError, 'port is required')
       @queue = opts[:queue]
       @topic = opts[:topic]
       @channel = opts[:channel]
