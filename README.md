@@ -60,6 +60,7 @@ The Nsq::Producer constructor takes the following options:
 | `topic`       | Topic to which to publish messages     |                    |
 | `nsqd`        | Host and port of the nsqd instance     | '127.0.0.1:4150'   |
 | `nsqlookupd`  | Use lookupd to automatically discover nsqds |               |
+| `ssl_context` | Optional keys and certificates for TLS connections |        |
 
 For example, if you'd like to publish messages to a single nsqd.
 
@@ -79,6 +80,19 @@ to a random nsqd instance.
 producer = Nsq::Producer.new(
   nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
   topic: 'topic-of-great-esteem'
+)
+```
+
+If you need to connect using SSL/TLS
+
+```Ruby
+producer = Nsq::Producer.new(
+  nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
+  topic: 'topic-of-great-esteem',
+  ssl_context: {
+    key: '/path/to/ssl/key.pem',
+    certificate: '/path/to/ssl/certificate.pem'
+  }
 )
 ```
 
@@ -149,6 +163,7 @@ producers when you're done with them.
 | `max_in_flight`      | Max number of messages for this consumer to have in flight at a time   | 1 |
 | `discovery_interval` | Seconds between queue discovery via nsqlookupd    | 60.0   |
 | `msg_timeout`        | Milliseconds before nsqd will timeout a message   | 60000  |
+| `ssl_context`        | Optional keys and certificates for TLS connections |       |
 
 
 For example:
@@ -160,7 +175,11 @@ consumer = Nsq::Consumer.new(
   nsqlookupd: ['127.0.0.1:4161', '4.5.6.7:4161'],
   max_in_flight: 100,
   discovery_interval: 30,
-  msg_timeout: 120_000
+  msg_timeout: 120_000,
+  ssl_context: {
+    key: '/path/to/ssl/key.pem',
+    certificate: '/path/to/ssl/certificate.pem'
+  }
 )
 ```
 
@@ -285,11 +304,11 @@ connection timeout support (0.2.29).
 - Discovery via nsqlookupd
 - Automatic reconnection to nsqd
 - Producing to all nsqd instances automatically via nsqlookupd
+- TLS
 
 
 ### Does not support
 
-- TLS
 - Compression
 - Backoff
 - Authentication

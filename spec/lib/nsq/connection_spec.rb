@@ -34,6 +34,51 @@ describe Nsq::Connection do
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port, max_in_flight: 1_000_000)
       }.to raise_error
     end
+
+    context 'when an ssl_context is provided' do
+      it 'raises when a key is not provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          ssl_context: {
+            certificate: 'blank',
+          }
+        }
+
+        expect{
+          Nsq::Connection.new(params)
+        }.to raise_error ArgumentError, /key/
+      end
+
+      it 'raises when a certificate is not provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          ssl_context: {
+            key: 'blank',
+          }
+        }
+
+        expect{
+          Nsq::Connection.new(params)
+        }.to raise_error ArgumentError, /certificate/
+      end
+
+      it 'raises when the key or cert files are not readable' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          ssl_context: {
+            key: 'not_a_file',
+            certificate: 'not_a_file'
+          }
+        }
+
+        expect{
+          Nsq::Connection.new(params)
+        }.to raise_error LoadError, /unreadable/
+      end
+    end
   end
 
 
