@@ -337,16 +337,18 @@ VERBOSE=true rake spec
 ## Is this production ready?
 
 Yes! It's used in several critical parts of our infrastructure at
-[Wistia](http://wistia.com) and currently produces and consumes tens of
+[Wistia](http://wistia.com) and currently produces and consumes hundreds of
 millions of messages a day.
 
 
 ## Authors
 
-- Robby Grossman (@freerobby)
-- Brendan Schwartz (@bschwartz)
-- Marshall Moutenot (@mmoutenot)
-- Danielle Sucher (@DanielleSucher)
+- Robby Grossman ([@freerobby](https://github.com/freerobby))
+- Brendan Schwartz ([@bschwartz](https://github.com/bschwartz))
+- Marshall Moutenot ([@mmoutenot](https://github.com/mmoutenot))
+- Danielle Sucher ([@DanielleSucher](https://github.com/DanielleSucher))
+- Anders Chen ([@chen-anders](https://github.com/chen-anders))
+- Thomas O'Neil ([@alieander](https://github.com/alieander))
 
 
 ## MIT License
