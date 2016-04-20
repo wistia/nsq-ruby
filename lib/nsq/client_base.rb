@@ -89,7 +89,8 @@ module Nsq
       host, port = nsqd.split(':')
       connection = Connection.new({
         host: host,
-        port: port
+        port: port,
+        ssl_context: @ssl_context
       }.merge(options))
       @connections[nsqd] = connection
     end
