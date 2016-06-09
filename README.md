@@ -25,6 +25,9 @@ producer.write('some-message')
 # Write a bunch of messages to NSQ (uses mpub)
 producer.write('one', 'two', 'three', 'four', 'five')
 
+# Write a deferred message to NSQ (uses dpub)
+producer.deferred_write(Time.now + 10, 'one')
+
 # Close the connection
 producer.terminate
 ```

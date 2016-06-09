@@ -29,7 +29,6 @@ module Nsq
       at_exit{terminate}
     end
 
-
     def write(*raw_messages)
       if !@topic
         raise 'No topic specified. Either specify a topic when instantiating the Producer or use write_to_topic.'
@@ -38,6 +37,17 @@ module Nsq
       write_to_topic(@topic, *raw_messages)
     end
 
+    def deferred_write(at, *raw_messages)
+      if !@topic
+        raise 'No topic specified. Either specify a topic when instantiating the Producer or use write_to_topic.'
+      end
+
+      if %w(Time DateTime Date).include? at.class.to_s
+        at = at.to_i
+      end
+
+      deferred_write_to_topic(@topic, at, *raw_messages)
+    end
 
     def write_to_topic(topic, *raw_messages)
       # return error if message(s) not provided
@@ -56,6 +66,14 @@ module Nsq
       end
     end
 
+    def deferred_write_to_topic(topic, at, *raw_messages)
+      raise ArgumentError, 'message not provided' if raw_messages.empty?
+      messages = raw_messages.map(&:to_s)
+      connection = connection_for_write
+      messages.each do |msg|
+        connection.dpub(topic, at, msg)
+      end
+    end
 
     private
     def connection_for_write
