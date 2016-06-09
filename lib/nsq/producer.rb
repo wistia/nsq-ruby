@@ -43,7 +43,7 @@ module Nsq
       end
 
       if %w(Time DateTime Date).include? at.class.to_s
-        at = at.to_i
+        at = at.to_i * 1000
       end
 
       deferred_write_to_topic(@topic, at, *raw_messages)

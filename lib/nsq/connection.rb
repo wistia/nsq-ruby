@@ -98,7 +98,7 @@ module Nsq
     end
 
     def dpub(topic, at, message)
-      at -= Time.now.to_i
+      at -= Time.now.to_i * 1000
       write ["DPUB #{topic} #{at}\n", message.bytesize, message].pack('a*l>a*')
     end
 
