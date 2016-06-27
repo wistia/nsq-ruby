@@ -37,16 +37,16 @@ module Nsq
       write_to_topic(@topic, *raw_messages)
     end
 
-    def deferred_write(at, *raw_messages)
+    # Arg 'delay' in seconds
+    def deferred_write(delay, *raw_messages)
       if !@topic
         raise 'No topic specified. Either specify a topic when instantiating the Producer or use write_to_topic.'
       end
-
-      if %w(Time DateTime Date).include? at.class.to_s
-        at = at.to_i * 1000
+      if delay < 0.0
+        raise "Delay can't be negative, use a positive float."
       end
 
-      deferred_write_to_topic(@topic, at, *raw_messages)
+      deferred_write_to_topic(@topic, delay, *raw_messages)
     end
 
     def write_to_topic(topic, *raw_messages)
@@ -66,12 +66,12 @@ module Nsq
       end
     end
 
-    def deferred_write_to_topic(topic, at, *raw_messages)
+    def deferred_write_to_topic(topic, delay, *raw_messages)
       raise ArgumentError, 'message not provided' if raw_messages.empty?
       messages = raw_messages.map(&:to_s)
       connection = connection_for_write
       messages.each do |msg|
-        connection.dpub(topic, at, msg)
+        connection.dpub(topic, (delay * 1000).to_i, msg)
       end
     end
 

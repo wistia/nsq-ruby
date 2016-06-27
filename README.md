@@ -26,7 +26,13 @@ producer.write('some-message')
 producer.write('one', 'two', 'three', 'four', 'five')
 
 # Write a deferred message to NSQ (uses dpub)
-producer.deferred_write(Time.now + 10, 'one')
+
+# Message deferred of 10s
+producer.deferred_write(10, 'one')
+
+# Message deferred of 1250ms
+producer.deferred_write(1.25, 'one')
+
 
 # Close the connection
 producer.terminate

@@ -71,15 +71,19 @@ describe Nsq::Producer do
       end
 
       it 'can queue a deferred message' do
-        @producer.deferred_write Time.now + 1, 1
+        @producer.deferred_write 1.0, 1
         wait_for{message_count==1}
         expect(message_count).to eq(1)
       end
 
       it 'can queue multiple deferred messages' do
-        @producer.deferred_write Time.now + 1, 1, 2, 3
+        @producer.deferred_write 1.0, 1, 2, 3
         wait_for{message_count==3}
         expect(message_count).to eq(3)
+      end
+
+      it 'raises an exception if delay is negative' do
+        expect {@producer.deferred_write -10, 1}.to raise_error
       end
 
       it 'shouldn\'t raise an error when nsqd is down' do
