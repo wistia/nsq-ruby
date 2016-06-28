@@ -350,7 +350,7 @@ Yes! It's used in several critical parts of our infrastructure at
 millions of messages a day.
 
 
-## Authors
+## Authors & Contributors
 
 - Robby Grossman ([@freerobby](https://github.com/freerobby))
 - Brendan Schwartz ([@bschwartz](https://github.com/bschwartz))
@@ -358,6 +358,7 @@ millions of messages a day.
 - Danielle Sucher ([@DanielleSucher](https://github.com/DanielleSucher))
 - Anders Chen ([@chen-anders](https://github.com/chen-anders))
 - Thomas O'Neil ([@alieander](https://github.com/alieander))
+- Unbekandt Léo ([@soulou](https://github.com/Soulou))
 
 
 ## MIT License
