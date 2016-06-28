@@ -28,7 +28,7 @@ GEM
       nokogiri (>= 1.5.10)
       rake
       rdoc
-    json (1.8.1)
+    json (1.8.3)
     jwt (1.0.0)
     mini_portile (0.6.0)
     multi_json (1.10.1)
@@ -71,3 +71,6 @@ DEPENDENCIES
   jeweler (~> 2.0)
   nsq-cluster (~> 1.1)
   rspec (~> 3.0)
+
+BUNDLED WITH
+   1.12.5

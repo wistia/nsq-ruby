@@ -97,6 +97,9 @@ module Nsq
       write ["PUB #{topic}\n", message.bytesize, message].pack('a*l>a*')
     end
 
+    def dpub(topic, delay_in_ms, message)
+      write ["DPUB #{topic} #{delay_in_ms}\n", message.bytesize, message].pack('a*l>a*')
+    end
 
     def mpub(topic, messages)
       body = messages.map do |message|
