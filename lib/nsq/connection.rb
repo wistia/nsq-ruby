@@ -355,12 +355,15 @@ module Nsq
 
 
     def upgrade_to_ssl_socket
-      @socket = OpenSSL::SSL::SSLSocket.new(@socket, openssl_context)
+      ssl_opts = [@socket, openssl_context].compact
+      @socket = OpenSSL::SSL::SSLSocket.new(*ssl_opts)
       @socket.connect
     end
 
 
     def openssl_context
+      return unless @ssl_context
+
       context = OpenSSL::SSL::SSLContext.new
       context.cert = OpenSSL::X509::Certificate.new(File.open(@ssl_context[:certificate]))
       context.key = OpenSSL::PKey::RSA.new(File.open(@ssl_context[:key]))
