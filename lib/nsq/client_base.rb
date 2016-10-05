@@ -90,7 +90,8 @@ module Nsq
       connection = Connection.new({
         host: host,
         port: port,
-        ssl_context: @ssl_context
+        ssl_context: @ssl_context,
+        tls_v1: @tls_v1
       }.merge(options))
       @connections[nsqd] = connection
     end
