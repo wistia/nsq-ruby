@@ -17,7 +17,8 @@ module Nsq
       @max_in_flight = opts[:max_in_flight] || 1
       @discovery_interval = opts[:discovery_interval] || 60
       @msg_timeout = opts[:msg_timeout]
-      @ssl_context = opts[:ssl_context] || opts[:ssl]
+      @ssl_context = opts[:ssl_context]
+      @tls_v1 = opts[:tls_v1]
 
       # This is where we queue up the messages we receive from each connection
       @messages = opts[:queue] || Queue.new
