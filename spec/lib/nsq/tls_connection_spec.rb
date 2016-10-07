@@ -53,13 +53,13 @@ describe Nsq::Connection do
 
   describe 'when using a simple tls connection' do
     it 'can write a message onto the queue and read it back off again' do
-      producer = new_producer(@nsqd, tls_v1: true)
+      producer = new_producer(@nsqd, ssl: true)
       topic = producer.topic
       producer.write('some-tls-message')
       wait_for { message_count(topic) == 1 }
       expect(message_count(topic)).to eq(1)
 
-      consumer = new_consumer(tls_v1: true)
+      consumer = new_consumer(ssl: true)
       msg = consumer.pop
       expect(msg.body).to eq('some-tls-message')
       msg.finish
