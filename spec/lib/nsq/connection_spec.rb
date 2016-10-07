@@ -35,6 +35,59 @@ describe Nsq::Connection do
       }.to raise_error
     end
 
+    context 'tls usage' do
+      it 'tls is used when tls_v1 is true and ssl_context provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          tls_v1: true,
+          ssl_context: ssl_context
+        }
+
+        conn = Nsq::Connection.new(params)
+        expect(conn.instance_variable_get(:@socket)).
+          to be_an_instance_of(OpenSSL::SSL::SSLSocket)
+        conn.close
+      end
+      it 'tls is used when tls_v1 is true and no ssl_context provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          tls_v1: true
+        }
+
+        conn = Nsq::Connection.new(params)
+        expect(conn.instance_variable_get(:@socket)).
+          to be_an_instance_of(OpenSSL::SSL::SSLSocket)
+        conn.close
+      end
+      it 'tls not used when tls_v1 is false and ssl_context provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          tls_v1: false,
+          ssl_context: ssl_context
+        }
+
+        conn = Nsq::Connection.new(params)
+        expect(conn.instance_variable_get(:@socket)).
+          to be_an_instance_of(TCPSocket)
+        conn.close
+      end
+      it 'tls not used when tls_v1 is false and no ssl_context provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          tls_v1: false
+        }
+
+        conn = Nsq::Connection.new(params)
+        expect(conn.instance_variable_get(:@socket)).
+          to be_an_instance_of(TCPSocket)
+        conn.close
+      end
+    end
+
     context 'when an ssl_context is provided' do
       it 'raises when a key is not provided' do
         params = {

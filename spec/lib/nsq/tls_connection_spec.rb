@@ -32,13 +32,13 @@ describe Nsq::Connection do
 
   describe 'when using a full tls context' do
     it 'can write a message onto the queue and read it back off again' do
-      producer = new_producer(@nsqd, ssl_context: ssl_context)
+      producer = new_producer(@nsqd, tls_v1: true, ssl_context: ssl_context)
       topic = producer.topic
       producer.write('some-tls-message')
       wait_for { message_count(topic) == 1 }
       expect(message_count(topic)).to eq(1)
 
-      consumer = new_consumer(ssl_context: ssl_context)
+      consumer = new_consumer(tls_v1: true, ssl_context: ssl_context)
       msg = consumer.pop
       expect(msg.body).to eq('some-tls-message')
       msg.finish
