@@ -70,7 +70,7 @@ The Nsq::Producer constructor takes the following options:
 | `nsqd`        | Host and port of the nsqd instance     | '127.0.0.1:4150'   |
 | `nsqlookupd`  | Use lookupd to automatically discover nsqds |               |
 | `ssl_context` | Optional keys and certificates for TLS connections |        |
-| `tls_v1`      | Optional flag for simple tls v1 connections |               |
+| `tls_v1`      | Flag for tls v1 connections (default false) |               |
 
 For example, if you'd like to publish messages to a single nsqd.
 
