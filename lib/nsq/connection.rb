@@ -32,7 +32,8 @@ module Nsq
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
       @max_in_flight = opts[:max_in_flight] || 1
       @ssl_context = opts[:ssl_context]
-      validate_ssl_context! if @ssl_context.kind_of?(Hash)
+      @tls_v1 = !!opts[:tls_v1]
+      validate_ssl_context! if @ssl_context
 
       if @msg_timeout < 1000
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
@@ -152,7 +153,7 @@ module Nsq
         heartbeat_interval: 30_000, # 30 seconds
         output_buffer: 16_000, # 16kb
         output_buffer_timeout: 250, # 250ms
-        tls_v1: !!@ssl_context,
+        tls_v1: !!@ssl_context || @tls_v1,
         snappy: false,
         deflate: false,
         sample_rate: 0, # disable sampling
@@ -320,7 +321,7 @@ module Nsq
       # it gets to nsqd ahead of anything in the `@write_queue`
       write_to_socket '  V2'
       identify
-      upgrade_to_ssl_socket if @ssl_context
+      upgrade_to_ssl_socket if @ssl_context || @tls_v1
 
       start_read_loop
       start_write_loop
@@ -361,7 +362,7 @@ module Nsq
 
 
     def openssl_context
-      return unless @ssl_context.kind_of?(Hash)
+      return unless @ssl_context
 
       context = OpenSSL::SSL::SSLContext.new
       context.cert = OpenSSL::X509::Certificate.new(File.open(@ssl_context[:certificate]))
