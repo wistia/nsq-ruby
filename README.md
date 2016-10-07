@@ -69,7 +69,7 @@ The Nsq::Producer constructor takes the following options:
 | `topic`       | Topic to which to publish messages     |                    |
 | `nsqd`        | Host and port of the nsqd instance     | '127.0.0.1:4150'   |
 | `nsqlookupd`  | Use lookupd to automatically discover nsqds |               |
-| `ssl_context` | Optional keys and certificates for TLS connections |        |
+| `ssl_context` **or** `ssl` | Optional keys and certificates for TLS connections **or** boolean | |
 
 For example, if you'd like to publish messages to a single nsqd.
 
@@ -92,7 +92,10 @@ producer = Nsq::Producer.new(
 )
 ```
 
-If you need to connect using SSL/TLS
+If you need to connect using SSL/TLS Authentication via a `ssl_context`
+
+**NOTE**: `ssl_context` and `ssl` are interchangeable but `ssl_context` will win
+if both are present. There is no reason to have both set at the same time.
 
 ```Ruby
 producer = Nsq::Producer.new(
@@ -105,6 +108,15 @@ producer = Nsq::Producer.new(
 )
 ```
 
+If you need to connect using simple `tls_v1`
+
+```Ruby
+producer = Nsq::Producer.new(
+  nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
+  topic: 'topic-of-great-esteem',
+  ssl: true
+)
+```
 
 ### `#write`
 

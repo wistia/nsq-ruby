@@ -8,7 +8,7 @@ module Nsq
       @connections = {}
       @topic = opts[:topic]
       @discovery_interval = opts[:discovery_interval] || 60
-      @ssl_context = opts[:ssl_context]
+      @ssl_context = opts[:ssl_context] || opts[:ssl]
 
       nsqlookupds = []
       if opts[:nsqlookupd]

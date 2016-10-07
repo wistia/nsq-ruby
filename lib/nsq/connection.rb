@@ -32,7 +32,7 @@ module Nsq
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
       @max_in_flight = opts[:max_in_flight] || 1
       @ssl_context = opts[:ssl_context]
-      validate_ssl_context! if @ssl_context
+      validate_ssl_context! if @ssl_context.kind_of?(Hash)
 
       if @msg_timeout < 1000
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
@@ -354,12 +354,15 @@ module Nsq
 
 
     def upgrade_to_ssl_socket
-      @socket = OpenSSL::SSL::SSLSocket.new(@socket, openssl_context)
+      ssl_opts = [@socket, openssl_context].compact
+      @socket = OpenSSL::SSL::SSLSocket.new(*ssl_opts)
       @socket.connect
     end
 
 
     def openssl_context
+      return unless @ssl_context.kind_of?(Hash)
+
       context = OpenSSL::SSL::SSLContext.new
       context.cert = OpenSSL::X509::Certificate.new(File.open(@ssl_context[:certificate]))
       context.key = OpenSSL::PKey::RSA.new(File.open(@ssl_context[:key]))
