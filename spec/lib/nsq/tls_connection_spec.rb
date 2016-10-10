@@ -31,23 +31,30 @@ describe Nsq::Connection do
   end
 
   describe 'when using a full tls context' do
-    it 'can write a message onto the queue and read it back off again' do
-      producer = new_producer(@nsqd, tls_v1: true, ssl_context: ssl_context)
-      topic = producer.topic
-      producer.write('some-tls-message')
-      wait_for { message_count(topic) == 1 }
-      expect(message_count(topic)).to eq(1)
+    %w(tls_options ssl_context).map(&:to_sym).each do |tls_options_key|
+      it 'can write a message onto the queue and read it back off again' do
+        params = {
+          tls_v1: true
+        }
+        params[tls_options_key] = tls_options_fixture
 
-      consumer = new_consumer(tls_v1: true, ssl_context: ssl_context)
-      msg = consumer.pop
-      expect(msg.body).to eq('some-tls-message')
-      msg.finish
+        producer = new_producer(@nsqd, params)
+        topic = producer.topic
+        producer.write('some-tls-message')
+        wait_for { message_count(topic) == 1 }
+        expect(message_count(topic)).to eq(1)
 
-      expect(msg.connection.instance_variable_get(:@socket)).
-        to be_instance_of(OpenSSL::SSL::SSLSocket)
+        consumer = new_consumer(params)
+        msg = consumer.pop
+        expect(msg.body).to eq('some-tls-message')
+        msg.finish
 
-      producer.terminate
-      consumer.terminate
+        expect(msg.connection.instance_variable_get(:@socket)).
+          to be_instance_of(OpenSSL::SSL::SSLSocket)
+
+        producer.terminate
+        consumer.terminate
+      end
     end
   end
 
@@ -74,20 +81,36 @@ describe Nsq::Connection do
 
 
   describe 'tls usage' do
-    it 'tls is used when tls_v1 is true and ssl_context provided' do
-      params = {
-        host: @nsqd.host,
-        port: @nsqd.tcp_port,
-        tls_v1: true,
-        ssl_context: ssl_context
-      }
+    %w(tls_options ssl_context).map(&:to_sym).each do |tls_options_key|
+      it 'tls is used when tls_v1 is true and @tls_options provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          tls_v1: true
+        }
+        params[tls_options_key] = tls_options_fixture
 
-      conn = Nsq::Connection.new(params)
-      expect(conn.instance_variable_get(:@socket)).
-        to be_an_instance_of(OpenSSL::SSL::SSLSocket)
-      conn.close
+        conn = Nsq::Connection.new(params)
+        expect(conn.instance_variable_get(:@socket)).
+          to be_an_instance_of(OpenSSL::SSL::SSLSocket)
+        conn.close
+      end
+      it 'tls not used when tls_v1 is false and @tls_options provided' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          tls_v1: false
+        }
+        params[tls_options_key] = tls_options_fixture
+
+        conn = Nsq::Connection.new(params)
+        expect(conn.instance_variable_get(:@socket)).
+          to be_an_instance_of(TCPSocket)
+        conn.close
+      end
     end
-    it 'tls is used when tls_v1 is true and no ssl_context provided' do
+
+    it 'tls is used when tls_v1 is true and no @tls_options provided' do
       params = {
         host: @nsqd.host,
         port: @nsqd.tcp_port,
@@ -99,20 +122,8 @@ describe Nsq::Connection do
         to be_an_instance_of(OpenSSL::SSL::SSLSocket)
       conn.close
     end
-    it 'tls not used when tls_v1 is false and ssl_context provided' do
-      params = {
-        host: @nsqd.host,
-        port: @nsqd.tcp_port,
-        tls_v1: false,
-        ssl_context: ssl_context
-      }
 
-      conn = Nsq::Connection.new(params)
-      expect(conn.instance_variable_get(:@socket)).
-        to be_an_instance_of(TCPSocket)
-      conn.close
-    end
-    it 'tls not used when tls_v1 is false and no ssl_context provided' do
+    it 'tls not used when tls_v1 is false and no @tls_options provided' do
       params = {
         host: @nsqd.host,
         port: @nsqd.tcp_port,

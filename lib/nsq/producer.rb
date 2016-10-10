@@ -9,6 +9,7 @@ module Nsq
       @topic = opts[:topic]
       @discovery_interval = opts[:discovery_interval] || 60
       @ssl_context = opts[:ssl_context]
+      @tls_options = opts[:tls_options]
       @tls_v1 = opts[:tls_v1]
 
       nsqlookupds = []

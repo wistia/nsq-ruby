@@ -13,7 +13,7 @@ module TlsSpecHelpers
     }
   end
 
-  def ssl_context
+  def tls_options_fixture
     {
       key: tls_certs[:client_key],
       certificate: tls_certs[:client_cert],
