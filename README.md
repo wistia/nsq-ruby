@@ -99,6 +99,7 @@ If you need to connect using SSL/TLS Authentication via `tls_options`
 producer = Nsq::Producer.new(
   nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
   topic: 'topic-of-great-esteem',
+  tls_v1: true,
   tls_options: {
     key: '/path/to/ssl/key.pem',
     certificate: '/path/to/ssl/certificate.pem'
@@ -180,9 +181,10 @@ producers when you're done with them.
 | `nsqlookupd`         | Use lookupd to automatically discover nsqds   |                    |
 | `nsqd`               | Connect directly to a single nsqd instance    | '127.0.0.1:4150'   |
 | `max_in_flight`      | Max number of messages for this consumer to have in flight at a time   | 1 |
-| `discovery_interval` | Seconds between queue discovery via nsqlookupd    | 60.0   |
-| `msg_timeout`        | Milliseconds before nsqd will timeout a message   | 60000  |
-| `tls_options`        | Optional keys and certificates for TLS connections |       |
+| `discovery_interval` | Seconds between queue discovery via nsqlookupd    | 60.0           |
+| `msg_timeout`        | Milliseconds before nsqd will timeout a message   | 60000          |
+| `tls_v1`             | Flag for tls v1 connections                   | false              |
+| `tls_options`        | Optional keys and certificates for TLS connections |               |
 
 
 For example:
@@ -195,6 +197,7 @@ consumer = Nsq::Consumer.new(
   max_in_flight: 100,
   discovery_interval: 30,
   msg_timeout: 120_000,
+  tls_v1: true,
   tls_options: {
     key: '/path/to/ssl/key.pem',
     certificate: '/path/to/ssl/certificate.pem'
