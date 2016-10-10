@@ -33,7 +33,14 @@ module Nsq
       @max_in_flight = opts[:max_in_flight] || 1
       @ssl_context = opts[:ssl_context]
       @tls_v1 = !!opts[:tls_v1]
-      validate_ssl_context! if @ssl_context
+
+      if @ssl_context
+        if @tls_v1
+          validate_ssl_context!
+        else
+          warn 'An ssl_context was provided, but tls_v1 is false. Skipping validation of ssl_context.'
+        end
+      end
 
       if @msg_timeout < 1000
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'

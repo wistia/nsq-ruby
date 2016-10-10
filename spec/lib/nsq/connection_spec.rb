@@ -36,13 +36,42 @@ describe Nsq::Connection do
     end
 
     context 'when an ssl_context is provided' do
+      it 'validates when tls_v1 is true' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          ssl_context: {
+            certificate: 'blank',
+          },
+          tls_v1: true
+        }
+
+        expect{
+          Nsq::Connection.new(params)
+        }.to raise_error ArgumentError, /key/
+      end
+      it 'skips validation when tls_v1 is false' do
+        params = {
+          host: @nsqd.host,
+          port: @nsqd.tcp_port,
+          ssl_context: {
+            certificate: 'blank',
+          },
+          tls_v1: false
+        }
+
+        expect{
+          Nsq::Connection.new(params)
+        }.not_to raise_error
+      end
       it 'raises when a key is not provided' do
         params = {
           host: @nsqd.host,
           port: @nsqd.tcp_port,
           ssl_context: {
             certificate: 'blank',
-          }
+          },
+          tls_v1: true
         }
 
         expect{
@@ -56,7 +85,8 @@ describe Nsq::Connection do
           port: @nsqd.tcp_port,
           ssl_context: {
             key: 'blank',
-          }
+          },
+          tls_v1: true
         }
 
         expect{
@@ -71,7 +101,8 @@ describe Nsq::Connection do
           ssl_context: {
             key: 'not_a_file',
             certificate: 'not_a_file'
-          }
+          },
+          tls_v1: true
         }
 
         expect{
