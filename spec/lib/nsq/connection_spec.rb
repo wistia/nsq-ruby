@@ -35,48 +35,81 @@ describe Nsq::Connection do
       }.to raise_error
     end
 
-    context 'when an ssl_context is provided' do
-      it 'raises when a key is not provided' do
-        params = {
-          host: @nsqd.host,
-          port: @nsqd.tcp_port,
-          ssl_context: {
-            certificate: 'blank',
+    %w(tls_options ssl_context).map(&:to_sym).each do |tls_options_key|
+      context "when #{tls_options_key} is provided" do
+        it 'validates when tls_v1 is true' do
+          params = {
+            host: @nsqd.host,
+            port: @nsqd.tcp_port,
+            tls_v1: true
           }
-        }
+          params[tls_options_key] = {
+            certificate: 'blank'
+          }
 
-        expect{
-          Nsq::Connection.new(params)
-        }.to raise_error ArgumentError, /key/
-      end
+          expect{
+            Nsq::Connection.new(params)
+          }.to raise_error ArgumentError, /key/
+        end
+        it 'skips validation when tls_v1 is false' do
+          params = {
+            host: @nsqd.host,
+            port: @nsqd.tcp_port,
+            tls_v1: false
+          }
+          params[tls_options_key] = {
+            certificate: 'blank'
+          }
 
-      it 'raises when a certificate is not provided' do
-        params = {
-          host: @nsqd.host,
-          port: @nsqd.tcp_port,
-          ssl_context: {
+          expect{
+            Nsq::Connection.new(params)
+          }.not_to raise_error
+        end
+        it 'raises when a key is not provided' do
+          params = {
+            host: @nsqd.host,
+            port: @nsqd.tcp_port,
+            tls_v1: true
+          }
+          params[tls_options_key] = {
+            certificate: 'blank'
+          }
+
+          expect{
+            Nsq::Connection.new(params)
+          }.to raise_error ArgumentError, /key/
+        end
+
+        it 'raises when a certificate is not provided' do
+          params = {
+            host: @nsqd.host,
+            port: @nsqd.tcp_port,
+            tls_v1: true
+          }
+          params[tls_options_key] = {
+            key: 'blank'
+          }
+
+          expect{
+            Nsq::Connection.new(params)
+          }.to raise_error ArgumentError, /certificate/
+        end
+
+        it 'raises when the key or cert files are not readable' do
+          params = {
+            host: @nsqd.host,
+            port: @nsqd.tcp_port,
+            tls_v1: true
+          }
+          params[tls_options_key] = {
             key: 'blank',
+            certificate: 'blank'
           }
-        }
 
-        expect{
-          Nsq::Connection.new(params)
-        }.to raise_error ArgumentError, /certificate/
-      end
-
-      it 'raises when the key or cert files are not readable' do
-        params = {
-          host: @nsqd.host,
-          port: @nsqd.tcp_port,
-          ssl_context: {
-            key: 'not_a_file',
-            certificate: 'not_a_file'
-          }
-        }
-
-        expect{
-          Nsq::Connection.new(params)
-        }.to raise_error LoadError, /unreadable/
+          expect{
+            Nsq::Connection.new(params)
+          }.to raise_error LoadError, /unreadable/
+        end
       end
     end
   end

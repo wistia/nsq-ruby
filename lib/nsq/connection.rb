@@ -31,8 +31,24 @@ module Nsq
       @channel = opts[:channel]
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
       @max_in_flight = opts[:max_in_flight] || 1
-      @ssl_context = opts[:ssl_context]
-      validate_ssl_context! if @ssl_context
+      @tls_options = opts[:tls_options]
+      if opts[:ssl_context]
+        if @tls_options
+          warn 'ssl_context and tls_options both set. Using tls_options. Ignoring ssl_context.'
+        else
+          @tls_options = opts[:ssl_context]
+          warn 'ssl_context will be deprecated nsq-ruby version 3. Please use tls_options instead.'
+        end
+      end
+      @tls_v1 = !!opts[:tls_v1]
+
+      if @tls_options
+        if @tls_v1
+          validate_tls_options!
+        else
+          warn 'tls_options was provided, but tls_v1 is false. Skipping validation of tls_options.'
+        end
+      end
 
       if @msg_timeout < 1000
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
@@ -152,7 +168,7 @@ module Nsq
         heartbeat_interval: 30_000, # 30 seconds
         output_buffer: 16_000, # 16kb
         output_buffer_timeout: 250, # 250ms
-        tls_v1: !!@ssl_context,
+        tls_v1: @tls_v1,
         snappy: false,
         deflate: false,
         sample_rate: 0, # disable sampling
@@ -320,7 +336,7 @@ module Nsq
       # it gets to nsqd ahead of anything in the `@write_queue`
       write_to_socket '  V2'
       identify
-      upgrade_to_ssl_socket if @ssl_context
+      upgrade_to_ssl_socket if @tls_v1
 
       start_read_loop
       start_write_loop
@@ -354,17 +370,20 @@ module Nsq
 
 
     def upgrade_to_ssl_socket
-      @socket = OpenSSL::SSL::SSLSocket.new(@socket, openssl_context)
+      ssl_opts = [@socket, openssl_context].compact
+      @socket = OpenSSL::SSL::SSLSocket.new(*ssl_opts)
       @socket.connect
     end
 
 
     def openssl_context
+      return unless @tls_options
+
       context = OpenSSL::SSL::SSLContext.new
-      context.cert = OpenSSL::X509::Certificate.new(File.open(@ssl_context[:certificate]))
-      context.key = OpenSSL::PKey::RSA.new(File.open(@ssl_context[:key]))
-      if @ssl_context[:ca_certificate]
-        context.ca_file = OpenSSL::X509::Certificate.new(File.open(@ssl_context[:ca_certificate])).to_pem
+      context.cert = OpenSSL::X509::Certificate.new(File.open(@tls_options[:certificate]))
+      context.key = OpenSSL::PKey::RSA.new(File.open(@tls_options[:key]))
+      if @tls_options[:ca_certificate]
+        context.ca_file = OpenSSL::X509::Certificate.new(File.open(@tls_options[:ca_certificate])).to_pem
       end
       context
     end
@@ -422,16 +441,16 @@ module Nsq
     end
 
 
-    def validate_ssl_context!
+    def validate_tls_options!
       [:key, :certificate].each do |key|
-        unless @ssl_context.has_key?(key)
-          raise ArgumentError.new "ssl_context requires a :#{key}"
+        unless @tls_options.has_key?(key)
+          raise ArgumentError.new "@tls_options requires a :#{key}"
         end
       end
 
       [:key, :certificate, :ca_certificate].each do |key|
-        if @ssl_context[key] && !File.readable?(@ssl_context[key])
-          raise LoadError.new "ssl_context :#{key} is unreadable"
+        if @tls_options[key] && !File.readable?(@tls_options[key])
+          raise LoadError.new "@tls_options :#{key} is unreadable"
         end
       end
     end
