@@ -333,7 +333,6 @@ connection timeout support (0.2.29).
 
 - Compression
 - Backoff
-- Authentication
 
 If you need more advanced features, like these, you should check out
 [Krakow](https://github.com/chrisroberts/krakow), a more fully featured NSQ
