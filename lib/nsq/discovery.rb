@@ -69,8 +69,15 @@ module Nsq
 
       uri.query = "ts=#{Time.now.to_i}"
       if topic
-        uri.path = '/lookup'
-        uri.query += "&topic=#{topic}"
+        if topic.include? '#'
+          uri.path = '/lookup'
+          topic_split = topic.split('#')
+          uri.query += "&topic=#{topic_split.first}"
+          uri.query += "%23#{topic_split.last}"
+        else
+          uri.path = '/lookup'
+          uri.query += "&topic=#{topic}"
+        end
       else
         uri.path = '/nodes'
       end
