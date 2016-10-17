@@ -57,6 +57,16 @@ describe Nsq::Discovery do
         nsqds = @discovery.nsqds_for_topic(@topic)
         expect(nsqds.sort).to eq(@expected_topic_lookup_nsqds)
       end
+
+      it 'returns nsqds for an ephemeral topic' do
+        ephemeral_topic = 'the-topic-of-note#ephemeral'
+        nsqd_with_ephemeral_topic = @cluster.nsqd.sample
+        nsqd_with_ephemeral_topic.pub(ephemeral_topic, 'some-message')
+
+        nsqds = @discovery.nsqds_for_topic(ephemeral_topic)
+        expected_nsqds = [nsqd_with_ephemeral_topic].map{|d|"#{d.host}:#{d.tcp_port}"}.sort
+        expect(nsqds.sort).to eq(expected_nsqds)
+      end
     end
   end
 
