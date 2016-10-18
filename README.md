@@ -371,6 +371,7 @@ millions of messages a day.
 - Anders Chen ([@chen-anders](https://github.com/chen-anders))
 - Thomas O'Neil ([@alieander](https://github.com/alieander))
 - Unbekandt Léo ([@soulou](https://github.com/Soulou))
+- Matthias Schneider ([@mschneider82](https://github.com/mschneider82))
 
 
 ## MIT License
