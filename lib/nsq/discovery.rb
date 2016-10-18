@@ -70,7 +70,7 @@ module Nsq
       uri.query = "ts=#{Time.now.to_i}"
       if topic
         uri.path = '/lookup'
-        uri.query += "&topic=#{URI.escape(topic)}"
+        uri.query += "&topic=#{topic}"
       else
         uri.path = '/nodes'
       end
