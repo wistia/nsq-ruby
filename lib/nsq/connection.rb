@@ -380,10 +380,10 @@ module Nsq
       return unless @tls_options
 
       context = OpenSSL::SSL::SSLContext.new
-      context.cert = OpenSSL::X509::Certificate.new(File.open(@tls_options[:certificate]))
-      context.key = OpenSSL::PKey::RSA.new(File.open(@tls_options[:key]))
+      context.cert = OpenSSL::X509::Certificate.new(File.read(@tls_options[:certificate]))
+      context.key = OpenSSL::PKey::RSA.new(File.read(@tls_options[:key]))
       if @tls_options[:ca_certificate]
-        context.ca_file = OpenSSL::X509::Certificate.new(File.open(@tls_options[:ca_certificate])).to_pem
+        context.ca_file = OpenSSL::X509::Certificate.new(File.read(@tls_options[:ca_certificate])).to_pem
       end
       context
     end
