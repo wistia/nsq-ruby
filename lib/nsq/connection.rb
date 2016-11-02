@@ -266,19 +266,20 @@ module Nsq
 
 
     def stop_write_loop
-      @stop_write_loop = true
-      @write_loop_thread.join(1) if @write_loop_thread
+      if @write_loop_thread
+        @write_queue.push(:stop_write_loop)
+        @write_loop_thread.join
+      end
       @write_loop_thread = nil
     end
 
 
     def write_loop
-      @stop_write_loop = false
       data = nil
       loop do
         data = @write_queue.pop
+        break if data == :stop_write_loop
         write_to_socket(data)
-        break if @stop_write_loop && @write_queue.size == 0
       end
     rescue Exception => ex
       # requeue PUB and MPUB commands
