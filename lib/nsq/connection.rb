@@ -383,7 +383,7 @@ module Nsq
       context.cert = OpenSSL::X509::Certificate.new(File.read(@tls_options[:certificate]))
       context.key = OpenSSL::PKey::RSA.new(File.read(@tls_options[:key]))
       if @tls_options[:ca_certificate]
-        context.ca_file = OpenSSL::X509::Certificate.new(File.read(@tls_options[:ca_certificate])).to_pem
+        context.ca_file = @tls_options[:ca_certificate]
       end
       context
     end
