@@ -385,6 +385,7 @@ module Nsq
       if @tls_options[:ca_certificate]
         context.ca_file = @tls_options[:ca_certificate]
       end
+      context.verify_mode = @tls_options[:verify_mode] || OpenSSL::SSL::VERIFY_NONE
       context
     end
 
