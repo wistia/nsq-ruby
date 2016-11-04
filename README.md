@@ -102,7 +102,9 @@ producer = Nsq::Producer.new(
   tls_v1: true,
   tls_options: {
     key: '/path/to/ssl/key.pem',
-    certificate: '/path/to/ssl/certificate.pem'
+    certificate: '/path/to/ssl/certificate.pem',
+    ca_certificate: '/path/to/ssl/ca_certificate.pem',
+    verify_mode: OpenSSL::SSL::VERIFY_PEER
   }
 )
 ```
@@ -200,7 +202,9 @@ consumer = Nsq::Consumer.new(
   tls_v1: true,
   tls_options: {
     key: '/path/to/ssl/key.pem',
-    certificate: '/path/to/ssl/certificate.pem'
+    certificate: '/path/to/ssl/certificate.pem',
+    ca_certificate: '/path/to/ssl/ca_certificate.pem',
+    verify_mode: OpenSSL::SSL::VERIFY_PEER
   }
 )
 ```

@@ -58,6 +58,22 @@ describe Nsq::Connection do
     end
   end
 
+  describe 'when verify_mode is passed' do
+    it 'fails if certificates do not verify' do
+      tls_options = tls_options_fixture.merge(verify_mode: OpenSSL::SSL::VERIFY_PEER)
+      tls_options.delete(:ca_certificate)
+
+      params = {
+        tls_v1: true,
+        tls_options: tls_options
+      }
+
+      expect {
+        new_producer(@nsqd, params)
+      }.to raise_error(OpenSSL::SSL::SSLError, /certificate verify failed/)
+    end
+  end
+
   describe 'when using a simple tls connection' do
     it 'can write a message onto the queue and read it back off again' do
       producer = new_producer(@nsqd, tls_v1: true)
