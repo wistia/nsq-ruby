@@ -374,6 +374,7 @@ module Nsq
     def upgrade_to_ssl_socket
       ssl_opts = [@socket, openssl_context].compact
       @socket = OpenSSL::SSL::SSLSocket.new(*ssl_opts)
+      @socket.sync_close = true
       @socket.connect
     end
 
