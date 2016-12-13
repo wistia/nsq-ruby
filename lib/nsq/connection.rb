@@ -357,7 +357,7 @@ module Nsq
       cls if connected?
       stop_read_loop
       stop_write_loop
-      @socket.close
+      @socket.close if @socket
       @socket = nil
       @connected = false
     end
