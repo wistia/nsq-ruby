@@ -83,5 +83,5 @@ end
 # This is for certain spots where we're testing connections going up and down.
 # Don't want these tests to take forever to run!
 def set_speedy_connection_timeouts!
-  allow_any_instance_of(Nsq::Connection).to receive(:snooze).and_return(nil)
+  allow_any_instance_of(Nsq::Connection).to receive(:snooze) { sleep 0.01 }
 end
