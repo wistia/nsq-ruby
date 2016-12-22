@@ -357,6 +357,7 @@ module Nsq
       cls if connected?
       stop_read_loop
       stop_write_loop
+      @socket.close if @socket
       @socket = nil
       @connected = false
     end
@@ -373,6 +374,7 @@ module Nsq
     def upgrade_to_ssl_socket
       ssl_opts = [@socket, openssl_context].compact
       @socket = OpenSSL::SSL::SSLSocket.new(*ssl_opts)
+      @socket.sync_close = true
       @socket.connect
     end
 
