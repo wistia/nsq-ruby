@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.4
+
+* Bugfix: Close connection socket when calling `.terminate`.
+
 ## 2.0.3
 
 * Bugfix: Ensure write_loop ends; pass message via write_queue (#32)

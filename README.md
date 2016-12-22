@@ -376,6 +376,7 @@ millions of messages a day.
 - Thomas O'Neil ([@alieander](https://github.com/alieander))
 - Unbekandt Léo ([@soulou](https://github.com/Soulou))
 - Matthias Schneider ([@mschneider82](https://github.com/mschneider82))
+- Lukas Eklund ([@leklund](https://github.com/leklund))
 
 
 ## MIT License
