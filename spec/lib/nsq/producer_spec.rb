@@ -1,5 +1,6 @@
 require_relative '../../spec_helper'
 require 'json'
+require 'get_process_mem'
 
 describe Nsq::Producer do
   def message_count(topic = @producer.topic)
@@ -278,4 +279,5 @@ describe Nsq::Producer do
     end
 
   end
+
 end

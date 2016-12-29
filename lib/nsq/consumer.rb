@@ -40,8 +40,6 @@ module Nsq
         # in this case let's connect to an nsqd instance directly
         add_connection(opts[:nsqd] || '127.0.0.1:4150', max_in_flight: @max_in_flight)
       end
-
-      at_exit{terminate}
     end
 
 

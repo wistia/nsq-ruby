@@ -27,8 +27,6 @@ module Nsq
       else
         add_connection('127.0.0.1:4150')
       end
-
-      at_exit{terminate}
     end
 
     def write(*raw_messages)
