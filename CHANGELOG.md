@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.5
+
+* Bugfix: Do not register `at_exit` handlers for consumers and producers to avoid memory leaks (#34)
+
 ## 2.0.4
 
 * Bugfix: Close connection socket when calling `.terminate`.

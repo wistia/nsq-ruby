@@ -33,7 +33,6 @@ producer.deferred_write(10, 'one')
 # Message deferred of 1250ms
 producer.deferred_write(1.25, 'one')
 
-
 # Close the connection
 producer.terminate
 ```
