@@ -3,7 +3,8 @@ require 'json'
 
 describe Nsq::Producer do
   def message_count(topic = @producer.topic)
-    topics_info = JSON.parse(@nsqd.stats.body)['data']['topics']
+    parsed_body = JSON.parse(@nsqd.stats.body)
+    topics_info = (parsed_body['data'] || parsed_body)['topics']
     topic_info = topics_info.select{|t| t['topic_name'] == topic }.first
     if topic_info
       topic_info['message_count']

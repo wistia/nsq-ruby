@@ -78,9 +78,11 @@ module Nsq
       begin
         body = Net::HTTP.get(uri)
         data = JSON.parse(body)
+        producers = data['producers'] || # v1.0.0-compat
+                      (data['data'] && data['data']['producers'])
 
-        if data['data'] && data['data']['producers']
-          data['data']['producers'].map do |producer|
+        if producers
+          producers.map do |producer|
             "#{producer['broadcast_address']}:#{producer['tcp_port']}"
           end
         else
