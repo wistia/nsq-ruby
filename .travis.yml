@@ -1,0 +1,17 @@
+language: ruby
+
+dist: trusty
+sudo: false
+
+cache: bundler
+
+rvm:
+  - 2.3.3
+
+before_install:
+  - wget https://s3.amazonaws.com/bitly-downloads/nsq/nsq-0.3.8.linux-amd64.go1.6.2.tar.gz -O /tmp/nsq.tar.gz
+  - tar -xvf /tmp/nsq.tar.gz
+  - export PATH=$PATH:$PWD/nsq-0.3.8.linux-amd64.go1.6.2/bin/
+
+script:
+  - bundle exec rake spec
