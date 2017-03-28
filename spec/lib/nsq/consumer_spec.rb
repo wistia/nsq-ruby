@@ -28,7 +28,7 @@ describe Nsq::Consumer do
 
         expect{
           new_consumer(nsqlookupd: nil, nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}")
-        }.to raise_error
+        }.to raise_error(Errno::ECONNREFUSED)
       end
     end
 
