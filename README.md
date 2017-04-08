@@ -7,6 +7,8 @@ nsq-ruby is a simple NSQ client library written in Ruby.
 - It's well tested.
 - It's being used in production and has processed billions of messages.
 
+[![Build Status](https://travis-ci.org/wistia/nsq-ruby.svg?branch=master)](https://travis-ci.org/wistia/nsq-ruby)
+
 
 ## Quick start
 
@@ -376,6 +378,7 @@ millions of messages a day.
 - Unbekandt Léo ([@soulou](https://github.com/Soulou))
 - Matthias Schneider ([@mschneider82](https://github.com/mschneider82))
 - Lukas Eklund ([@leklund](https://github.com/leklund))
+- Paco Guzmán ([@pacoguzman](https://github.com/pacoguzman))
 
 
 ## MIT License
