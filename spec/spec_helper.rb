@@ -40,7 +40,7 @@ end
 # example:
 #   wait_for { @consumer.queue.length > 0 }
 #
-def wait_for(timeout = 5, &block)
+def wait_for(timeout = 10, &block)
   Timeout::timeout(timeout) do
     loop do
       break if yield
