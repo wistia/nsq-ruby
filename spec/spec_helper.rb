@@ -35,12 +35,12 @@ def assert_timeout(time = 1, &block)
 end
 
 # Block execution until a condition is met
-# Times out after 5 seconds by default
+# Times out after 30 seconds by default
 #
 # example:
 #   wait_for { @consumer.queue.length > 0 }
 #
-def wait_for(timeout = 10, &block)
+def wait_for(timeout = 30, &block)
   Timeout::timeout(timeout) do
     loop do
       break if yield
