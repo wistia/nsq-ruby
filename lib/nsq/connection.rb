@@ -403,7 +403,6 @@ module Nsq
 
       # Let's do this thing
       attempts = 0
-      start_time = Time.now
 
       begin
         attempts += 1
@@ -440,7 +439,7 @@ module Nsq
     def server_needs_rdy_re_ups?
       # versions less than 0.3.0 need RDY re-ups
       # see: https://github.com/bitly/nsq/blob/master/ChangeLog.md#030---2014-11-18
-      major, minor, patch = @server_version.split('.').map(&:to_i)
+      major, minor = @server_version.split('.').map(&:to_i)
       major == 0 && minor <= 2
     end
 
