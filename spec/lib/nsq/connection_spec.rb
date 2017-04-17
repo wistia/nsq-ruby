@@ -18,21 +18,21 @@ describe Nsq::Connection do
 
       expect{
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port)
-      }.to raise_error
+      }.to raise_error(Errno::ECONNREFUSED)
     end
 
     it 'should raise an exception if it connects to something that isn\'t nsqd' do
       expect{
         # try to connect to the HTTP port instead of TCP
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.http_port)
-      }.to raise_error
+      }.to raise_error(RuntimeError, /Bad frame type specified/)
     end
 
     it 'should raise an exception if max_in_flight is above what the server supports' do
       expect{
         # try to connect to the HTTP port instead of TCP
         Nsq::Connection.new(host: @nsqd.host, port: @nsqd.tcp_port, max_in_flight: 1_000_000)
-      }.to raise_error
+      }.to raise_error(RuntimeError, "max_in_flight is set to 1000000, server only supports 2500")
     end
 
     %w(tls_options ssl_context).map(&:to_sym).each do |tls_options_key|

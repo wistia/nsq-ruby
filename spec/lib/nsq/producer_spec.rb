@@ -3,7 +3,8 @@ require 'json'
 
 describe Nsq::Producer do
   def message_count(topic = @producer.topic)
-    topics_info = JSON.parse(@nsqd.stats.body)['data']['topics']
+    parsed_body = JSON.parse(@nsqd.stats.body)
+    topics_info = (parsed_body['data'] || parsed_body)['topics']
     topic_info = topics_info.select{|t| t['topic_name'] == topic }.first
     if topic_info
       topic_info['message_count']
@@ -40,7 +41,7 @@ describe Nsq::Producer do
 
         expect{
           new_producer(@nsqd)
-        }.to raise_error
+        }.to raise_error(Errno::ECONNREFUSED)
       end
     end
 
@@ -83,7 +84,9 @@ describe Nsq::Producer do
       end
 
       it 'raises an exception if delay is negative' do
-        expect {@producer.deferred_write -10, 1}.to raise_error
+        expect {
+          @producer.deferred_write -10, 1
+        }.to raise_error(RuntimeError, "Delay can't be negative, use a positive float.")
       end
 
       it 'shouldn\'t raise an error when nsqd is down' do
@@ -273,7 +276,7 @@ describe Nsq::Producer do
         wait_for{ @producer.connections.length == 0 }
         expect {
           @producer.write('die')
-        }.to raise_error
+        }.to raise_error(RuntimeError, /No connections available/)
       end
     end
 
