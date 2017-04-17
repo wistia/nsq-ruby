@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+
+* Now compatible with NSQ 1.0 thanks to @pacoguzman (#37).
+
 ## 2.0.5
 
 * Bugfix: Do not register `at_exit` handlers for consumers and producers to avoid memory leaks (#34)
