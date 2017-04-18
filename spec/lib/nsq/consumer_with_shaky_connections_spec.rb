@@ -105,7 +105,7 @@ describe Nsq::Consumer do
       nsqd.pub(TOPIC, expected_messages[idx])
     end
 
-    assert_no_timeout(10) do
+    assert_no_timeout(30) do
       received_messages = []
 
       while (expected_messages & received_messages).length < expected_messages.length do
