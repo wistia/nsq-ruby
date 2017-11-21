@@ -55,7 +55,7 @@ module Nsq
       end
 
       # for outgoing communication
-      @write_queue = Queue.new
+      @write_queue = SizedQueue.new(10000)
 
       # For indicating that the connection has died.
       # We use a Queue so we don't have to poll. Used to communicate across
