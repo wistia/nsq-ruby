@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+* Fix memory leak in producer by using a limited `SizedQueue` (#42)
+
 ## 2.1.0
 
 * Now compatible with NSQ 1.0 thanks to @pacoguzman (#37).

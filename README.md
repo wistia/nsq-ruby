@@ -139,7 +139,12 @@ If its connection to nsqd fails, it will automatically try to reconnect with
 exponential backoff. Any messages that were sent to `#write` will be queued
 and transmitted after reconnecting.
 
-**Note** we don't wait for nsqd to acknowledge our writes. As a result, if the
+**Note:** Internally, we use a `SizedQueue` that can hold 10,000 messages. If you're
+producing messages faster than we're able to send them to nsqd or nsqd is
+offline for an extended period and you accumulate 10,000 messages in the queue,
+calls to `#write` will block until there's room in the queue.
+
+**Note:** We don't wait for nsqd to acknowledge our writes. As a result, if the
 connection to nsqd fails, you can lose messages. This is acceptable for our use
 cases, mostly because we are sending messages to a local nsqd instance and
 failure is very rare.
