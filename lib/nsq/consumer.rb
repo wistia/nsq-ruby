@@ -17,6 +17,7 @@ module Nsq
       @max_in_flight = opts[:max_in_flight] || 1
       @discovery_interval = opts[:discovery_interval] || 60
       @msg_timeout = opts[:msg_timeout]
+      @max_attempts = opts[:max_attempts]
       @ssl_context = opts[:ssl_context]
       @tls_options = opts[:tls_options]
       @tls_v1 = opts[:tls_v1]
@@ -75,7 +76,8 @@ module Nsq
         channel: @channel,
         queue: @messages,
         msg_timeout: @msg_timeout,
-        max_in_flight: 1
+        max_in_flight: 1,
+        max_attempts: @max_attempts
       }.merge(options))
     end
 
