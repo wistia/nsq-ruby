@@ -191,6 +191,7 @@ producers when you're done with them.
 | `max_in_flight`      | Max number of messages for this consumer to have in flight at a time   | 1 |
 | `discovery_interval` | Seconds between queue discovery via nsqlookupd    | 60.0           |
 | `msg_timeout`        | Milliseconds before nsqd will timeout a message   | 60000          |
+| `max_attempts`       | Number of times a message will be attempted before being finished |  |
 | `tls_v1`             | Flag for tls v1 connections                   | false              |
 | `tls_options`        | Optional keys and certificates for TLS connections |               |
 
@@ -205,6 +206,7 @@ consumer = Nsq::Consumer.new(
   max_in_flight: 100,
   discovery_interval: 30,
   msg_timeout: 120_000,
+  max_attempts: 10,
   tls_v1: true,
   tls_options: {
     key: '/path/to/ssl/key.pem',
@@ -224,7 +226,8 @@ Notes:
   but to make the implementation of `nsq-ruby` as simple as possible, the minimum
   `max_in_flight` _per_ connection is 1. So if you set `max_in_flight` to 1 and
   are connected to 3 nsqds, you may have up to 3 messages in flight at a time.
-
+- `max_attempts` is optional and if not set messages will be attempted until they
+  are explicitly finshed.
 
 ### `#pop`
 
