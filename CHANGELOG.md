@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.0
+
+* Add support for `max_attempts` (#43)
+
 ## 2.2.0
 
 * Fix memory leak in producer by using a limited `SizedQueue` (#42)
