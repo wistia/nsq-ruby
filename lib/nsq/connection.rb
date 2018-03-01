@@ -32,6 +32,7 @@ module Nsq
       @msg_timeout = opts[:msg_timeout] || 60_000 # 60s
       @max_in_flight = opts[:max_in_flight] || 1
       @tls_options = opts[:tls_options]
+      @max_attempts = opts[:max_attempts]
       if opts[:ssl_context]
         if @tls_options
           warn 'ssl_context and tls_options both set. Using tls_options. Ignoring ssl_context.'
@@ -250,7 +251,11 @@ module Nsq
           error "Error received: #{frame.data}"
         elsif frame.is_a?(Message)
           debug "<<< #{frame.body}"
-          @queue.push(frame) if @queue
+          if @max_attempts && frame.attempts > @max_attempts
+            fin(frame.id)
+          else
+            @queue.push(frame) if @queue
+          end
         else
           raise 'No data from socket'
         end

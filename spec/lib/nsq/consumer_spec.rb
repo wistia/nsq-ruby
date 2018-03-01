@@ -256,4 +256,34 @@ describe Nsq::Consumer do
     end
   end
 
+
+  describe 'when max_attempts is set' do
+    before do
+      @nsqd = @cluster.nsqd.first
+      @msg_timeout = 1
+      @max_attempts = 1
+      @consumer = new_consumer(
+        nsqlookupd: nil,
+        nsqd: "#{@nsqd.host}:#{@nsqd.tcp_port}",
+        msg_timeout: @msg_timeout * 1000, # in milliseconds
+        max_attempts: @max_attempts
+      )
+    end
+    after do
+      @consumer.terminate
+    end
+
+
+    it 'should only receive a message max_attempts number of times' do
+      @nsqd.pub(TOPIC, 'max')
+
+      msg1 = @consumer.pop
+      expect(msg1.body).to eq('max')
+      expect(msg1.attempts).to eq(1)
+
+      assert_timeout do
+        @consumer.pop
+      end
+    end
+  end
 end
