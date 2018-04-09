@@ -17,3 +17,6 @@ pkg
 
 # for Mac
 .DS_Store
+
+# for rubymine
+.idea/

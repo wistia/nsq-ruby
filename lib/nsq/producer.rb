@@ -1,4 +1,5 @@
 require_relative 'client_base'
+require 'timeout'
 
 module Nsq
   class Producer < ClientBase
@@ -19,6 +20,15 @@ module Nsq
           nsqlookupds: nsqlookupds,
           interval: @discovery_interval
         )
+
+        # no_wait_first_nsqd: do not wait for the first avalible nsqd
+        return if opts[:no_wait_first_nsqd]
+        #  first time init producer wait for nsqlookupd connect to get first avalible nsqd
+        Timeout.timeout(opts[:nsqlookup_timeout] || 5) do
+          while @connections.values.select(&:connected?).size == 0
+            sleep(0.1)
+          end
+        end
 
       elsif opts[:nsqd]
         nsqds = [opts[:nsqd]].flatten
