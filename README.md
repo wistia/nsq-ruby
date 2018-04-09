@@ -177,6 +177,14 @@ reconnect.
 This is automatically called `at_exit`, but it's good practice to close your
 producers when you're done with them.
 
+**Note:** This terminates the connection to NSQ immediately. If you're writing
+messages faster than they can be sent to NSQ, you may have messages in the
+producer's internal queue. Calling `#terminate` before they're sent will cause
+these messages to be lost. After you write your last message, consider sleeping
+for a second before you call `#terminate`.
+
+
+
 
 ## Consumer
 
@@ -391,7 +399,7 @@ millions of messages a day.
 
 ## MIT License
 
-Copyright (C) 2016 Wistia, Inc.
+Copyright (C) 2018 Wistia, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
