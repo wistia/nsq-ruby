@@ -15,16 +15,19 @@ module Nsq
 
       nsqlookupds = []
       if opts[:nsqlookupd]
+        nsqlookupd_blocking = opts[:nsqlookupd_blocking] || false
+        nsqlookupd_timeout = opts[:nsqlookupd_timeout] || 5
+
         nsqlookupds = [opts[:nsqlookupd]].flatten
         discover_repeatedly(
           nsqlookupds: nsqlookupds,
           interval: @discovery_interval
         )
 
-        # no_wait_first_nsqd: do not wait for the first avalible nsqd
-        return if opts[:no_wait_first_nsqd]
+        # nsqlookupd_blocking: don't wait for the first avalible nsqd
+        return unless nsqlookupd_blocking
         #  first time init producer wait for nsqlookupd connect to get first avalible nsqd
-        Timeout.timeout(opts[:nsqlookup_timeout] || 5) do
+        Timeout.timeout(nsqlookupd_timeout) do
           while @connections.values.select(&:connected?).size == 0
             sleep(0.1)
           end
