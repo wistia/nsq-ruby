@@ -5,7 +5,7 @@ describe Nsq::Producer do
   def message_count(topic = @producer.topic)
     parsed_body = JSON.parse(@nsqd.stats.body)
     topics_info = (parsed_body['data'] || parsed_body)['topics']
-    topic_info = topics_info.select{|t| t['topic_name'] == topic }.first
+    topic_info = topics_info.select { |t| t['topic_name'] == topic }.first
     if topic_info
       topic_info['message_count']
     else
@@ -39,7 +39,7 @@ describe Nsq::Producer do
       it 'should throw an exception when trying to connect to a server that\'s down' do
         @nsqd.stop
 
-        expect{
+        expect {
           new_producer(@nsqd)
         }.to raise_error(Errno::ECONNREFUSED)
       end
@@ -52,7 +52,7 @@ describe Nsq::Producer do
 
       it 'should return false when nsqd is down' do
         @nsqd.stop
-        wait_for{!@producer.connected?}
+        wait_for { !@producer.connected? }
         expect(@producer.connected?).to eq(false)
       end
     end
@@ -61,25 +61,25 @@ describe Nsq::Producer do
 
       it 'can queue a message' do
         @producer.write('some-message')
-        wait_for{message_count==1}
+        wait_for { message_count==1 }
         expect(message_count).to eq(1)
       end
 
       it 'can queue multiple messages at once' do
         @producer.write(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-        wait_for{message_count==10}
+        wait_for { message_count==10 }
         expect(message_count).to eq(10)
       end
 
       it 'can queue a deferred message' do
         @producer.deferred_write 1.0, 1
-        wait_for{message_count==1}
+        wait_for { message_count==1 }
         expect(message_count).to eq(1)
       end
 
       it 'can queue multiple deferred messages' do
         @producer.deferred_write 1.0, 1, 2, 3
-        wait_for{message_count==3}
+        wait_for { message_count==3 }
         expect(message_count).to eq(3)
       end
 
@@ -92,8 +92,8 @@ describe Nsq::Producer do
       it 'shouldn\'t raise an error when nsqd is down' do
         @nsqd.stop
 
-        expect{
-          10.times{@producer.write('fail')}
+        expect {
+          10.times { @producer.write('fail') }
         }.to_not raise_error
       end
 
@@ -101,7 +101,7 @@ describe Nsq::Producer do
         @nsqd.stop
 
         # Write 10 messages while nsqd is down
-        10.times{|i| @producer.write(i)}
+        10.times { |i| @producer.write(i) }
 
         @nsqd.start
 
@@ -166,8 +166,8 @@ describe Nsq::Producer do
       it 'can queue a single message for a topic' do
         @producer.write_to_topic('topic-a', 'some-message')
         @producer.write_to_topic('topic-b', 'some-message')
-        wait_for{message_count('topic-a')==1}
-        wait_for{message_count('topic-b')==1}
+        wait_for { message_count('topic-a')==1 }
+        wait_for { message_count('topic-b')==1 }
         expect(message_count('topic-a')).to eq(1)
         expect(message_count('topic-b')).to eq(1)
       end
@@ -175,8 +175,8 @@ describe Nsq::Producer do
       it 'can queue multiple messages at once for a topic' do
         @producer.write_to_topic('topic-a', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
         @producer.write_to_topic('topic-b', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-        wait_for{message_count('topic-a')==10}
-        wait_for{message_count('topic-b')==10}
+        wait_for { message_count('topic-a')==10 }
+        wait_for { message_count('topic-b')==10 }
         expect(message_count('topic-a')).to eq(10)
         expect(message_count('topic-b')).to eq(10)
       end
@@ -189,8 +189,8 @@ describe Nsq::Producer do
         @producer.write_to_topic('topic-b', 3, 4)
         @producer.write_to_topic('topic-a', 5)
 
-        wait_for{message_count('topic-a') == 3}
-        wait_for{message_count('topic-b') == 2}
+        wait_for { message_count('topic-a') == 3 }
+        wait_for { message_count('topic-b') == 2 }
 
         a_msgs = [1, 2, 5].map(&:to_s)
         b_msgs = [3, 4].map(&:to_s)
@@ -216,7 +216,7 @@ describe Nsq::Producer do
 
       it 'works if you pass it a symbol for topic' do
         @producer.write_to_topic(:hello, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-        wait_for{message_count('hello')==10}
+        wait_for { message_count('hello')==10 }
         expect(message_count('hello')).to eq(10)
       end
     end
@@ -227,10 +227,6 @@ describe Nsq::Producer do
 
     before do
       @cluster = NsqCluster.new(nsqd_count: 2, nsqlookupd_count: 1)
-      @producer = new_lookupd_producer
-
-      # wait for it to connect to all nsqds
-      wait_for{ @producer.connections.length == @cluster.nsqd.length }
     end
 
     after do
@@ -238,45 +234,91 @@ describe Nsq::Producer do
       @cluster.destroy
     end
 
+    it 'default non blocking' do
+      @producer = new_lookupd_producer
+      expect(@producer.connections.length).to_not eq(@cluster.nsqd.length)
+    end
 
-    describe '#connections' do
-      it 'should be connected to all nsqds' do
-        expect(@producer.connections.length).to eq(@cluster.nsqd.length)
+    context 'wait for one avalible nsqd ready' do
+      before do
+        @producer = new_lookupd_producer(nsqlookupd_blocking: true)
       end
 
-      it 'should drop a connection when an nsqd goes offline' do
-        @cluster.nsqd.first.stop
-        wait_for{ @producer.connections.length == @cluster.nsqd.length - 1 }
-        expect(@producer.connections.length).to eq(@cluster.nsqd.length - 1)
+      describe '#connected?' do
+        it 'should return true if it\'s connected to at least one nsqd' do
+          expect(@producer.connected?).to eq(true)
+        end
+
+        it 'should return false when it\'s not connected to any nsqds' do
+          @cluster.nsqd.each { |nsqd| nsqd.stop }
+          wait_for { !@producer.connected? }
+          expect(@producer.connected?).to eq(false)
+        end
+      end
+
+
+      describe '#write' do
+        it 'writes to a random connection' do
+          expect_any_instance_of(Nsq::Connection).to receive(:pub)
+          @producer.write('howdy!')
+        end
+
+        it 'raises an error if there are no connections to write to' do
+          @cluster.nsqd.each { |nsqd| nsqd.stop }
+          wait_for { @producer.connections.length == 0 }
+          expect {
+            @producer.write('die')
+          }.to raise_error(RuntimeError, /No connections available/)
+        end
       end
     end
 
-
-    describe '#connected?' do
-      it 'should return true if it\'s connected to at least one nsqd' do
-        expect(@producer.connected?).to eq(true)
+    context 'wait for all nsqd ready' do
+      before do
+        @producer = new_lookupd_producer
+        # wait for it to connect to all nsqds
+        wait_for { @producer.connections.length == @cluster.nsqd.length }
       end
 
-      it 'should return false when it\'s not connected to any nsqds' do
-        @cluster.nsqd.each{|nsqd| nsqd.stop}
-        wait_for{ !@producer.connected? }
-        expect(@producer.connected?).to eq(false)
-      end
-    end
+      describe '#connections' do
+        it 'should be connected to all nsqds' do
+          expect(@producer.connections.length).to eq(@cluster.nsqd.length)
+        end
 
-
-    describe '#write' do
-      it 'writes to a random connection' do
-        expect_any_instance_of(Nsq::Connection).to receive(:pub)
-        @producer.write('howdy!')
+        it 'should drop a connection when an nsqd goes offline' do
+          @cluster.nsqd.first.stop
+          wait_for { @producer.connections.length == @cluster.nsqd.length - 1 }
+          expect(@producer.connections.length).to eq(@cluster.nsqd.length - 1)
+        end
       end
 
-      it 'raises an error if there are no connections to write to' do
-        @cluster.nsqd.each{|nsqd| nsqd.stop}
-        wait_for{ @producer.connections.length == 0 }
-        expect {
-          @producer.write('die')
-        }.to raise_error(RuntimeError, /No connections available/)
+
+      describe '#connected?' do
+        it 'should return true if it\'s connected to at least one nsqd' do
+          expect(@producer.connected?).to eq(true)
+        end
+
+        it 'should return false when it\'s not connected to any nsqds' do
+          @cluster.nsqd.each { |nsqd| nsqd.stop }
+          wait_for { !@producer.connected? }
+          expect(@producer.connected?).to eq(false)
+        end
+      end
+
+
+      describe '#write' do
+        it 'writes to a random connection' do
+          expect_any_instance_of(Nsq::Connection).to receive(:pub)
+          @producer.write('howdy!')
+        end
+
+        it 'raises an error if there are no connections to write to' do
+          @cluster.nsqd.each { |nsqd| nsqd.stop }
+          wait_for { @producer.connections.length == 0 }
+          expect {
+            @producer.write('die')
+          }.to raise_error(RuntimeError, /No connections available/)
+        end
       end
     end
 

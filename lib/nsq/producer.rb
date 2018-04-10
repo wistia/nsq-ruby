@@ -1,4 +1,5 @@
 require_relative 'client_base'
+require 'timeout'
 
 module Nsq
   class Producer < ClientBase
@@ -14,11 +15,23 @@ module Nsq
 
       nsqlookupds = []
       if opts[:nsqlookupd]
+        nsqlookupd_blocking = opts[:nsqlookupd_blocking] || false
+        nsqlookupd_timeout = opts[:nsqlookupd_timeout] || 5
+
         nsqlookupds = [opts[:nsqlookupd]].flatten
         discover_repeatedly(
           nsqlookupds: nsqlookupds,
           interval: @discovery_interval
         )
+
+        # nsqlookupd_blocking: don't wait for the first avalible nsqd
+        return unless nsqlookupd_blocking
+        #  first time init producer wait for nsqlookupd connect to get first avalible nsqd
+        Timeout.timeout(nsqlookupd_timeout) do
+          while @connections.values.select(&:connected?).size == 0
+            sleep(0.1)
+          end
+        end
 
       elsif opts[:nsqd]
         nsqds = [opts[:nsqd]].flatten
