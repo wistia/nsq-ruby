@@ -9,7 +9,7 @@ module Nsq
 
     def initialize(data, connection)
       super
-      @timestamp_in_nanoseconds, @attempts, @id, @body = @data.unpack('Q>s>a16a*')
+      @timestamp_in_nanoseconds, @attempts, @id, @body = @data.unpack('Q>S>a16a*')
       @body.force_encoding('UTF-8')
     end
 
