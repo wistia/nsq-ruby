@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.1
+
+* Fix `max_attempts` bug (#46)
+
 ## 2.3.0
 
 * Add support for `max_attempts` (#43)
