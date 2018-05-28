@@ -256,8 +256,10 @@ module Nsq
           else
             @queue.push(frame) if @queue
           end
+        else if frame
+          raise "Read loop: Unexpected frame value #{frame}, data=#{frame.data}"
         else
-          raise 'No data from socket'
+          raise 'Read loop: No data from socket'
         end
       end
     rescue Exception => ex
