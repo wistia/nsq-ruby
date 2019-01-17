@@ -6,6 +6,7 @@ require 'timeout'
 require_relative 'frames/error'
 require_relative 'frames/message'
 require_relative 'frames/response'
+require_relative 'selectable_queue'
 require_relative 'logger'
 
 module Nsq
@@ -56,11 +57,11 @@ module Nsq
       end
 
       # for outgoing communication
-      @write_queue = SizedQueue.new(10000)
+      @write_queue = SelectableQueue.new(10000)
 
       # For indicating that the connection has died.
       # We use a Queue so we don't have to poll. Used to communicate across
-      # threads (from write_loop and read_loop to connect_and_monitor).
+      # threads (from read_write_loop to connect_and_monitor).
       @death_queue = Queue.new
 
       @connected = false
@@ -201,15 +202,19 @@ module Nsq
       end
     end
 
-
-    def receive_frame
-      if buffer = @socket.read(8)
+    def receive_frame(recv_method = :recv)
+      # __send__ is used as it clashes with #send method of Socket
+      if buffer = @socket.__send__(recv_method, 8)
         size, type = buffer.unpack('l>l>')
         size -= 4 # we want the size of the data part and type already took up 4 bytes
-        data = @socket.read(size)
+        data = @socket.recv(size)
         frame_class = frame_class_for_type(type)
         return frame_class.new(data, self)
       end
+    end
+
+    def receive_frame_nonblock
+      receive_frame(:recv_nonblock)
     end
 
 
@@ -231,70 +236,52 @@ module Nsq
     end
 
 
-    def start_read_loop
-      @read_loop_thread ||= Thread.new{read_loop}
+    def start_read_write_loop
+      @read_write_loop_thread ||= Thread.new{read_write_loop}
     end
 
 
-    def stop_read_loop
-      @read_loop_thread.kill if @read_loop_thread
-      @read_loop_thread = nil
+    def stop_read_write_loop
+      @read_write_loop_thread.kill if @read_write_loop_thread
+      @read_write_loop_thread = nil
     end
 
-
-    def read_loop
+    def read_write_loop
       loop do
-        frame = receive_frame
-        if frame.is_a?(Response)
-          handle_response(frame)
-        elsif frame.is_a?(Error)
-          error "Error received: #{frame.data}"
-        elsif frame.is_a?(Message)
-          debug "<<< #{frame.body}"
-          if @max_attempts && frame.attempts > @max_attempts
-            fin(frame.id)
-          else
-            @queue.push(frame) if @queue
+        begin
+          ready, _, _ = IO.select([@socket, @write_queue])
+
+          if ready.include?(@write_queue)
+            data = @write_queue.pop
+            if !data.nil?
+              write_to_socket(data)
+            end
           end
-        else
-          raise 'No data from socket'
+
+          frame = receive_frame_nonblock
+          if !frame.nil?
+            if frame.is_a?(Response)
+              handle_response(frame)
+            elsif frame.is_a?(Error)
+              error "Error received: #{frame.data}"
+            elsif frame.is_a?(Message)
+              debug "<<< #{frame.body}"
+              if @max_attempts && frame.attempts > @max_attempts
+                fin(frame.id)
+              else
+                @queue.push(frame) if @queue
+              end
+            else
+              raise 'No data from socket'
+            end
+          end
+        rescue IO::WaitReadable
+          retry
         end
       end
     rescue Exception => ex
       die(ex)
     end
-
-
-    def start_write_loop
-      @write_loop_thread ||= Thread.new{write_loop}
-    end
-
-
-    def stop_write_loop
-      if @write_loop_thread
-        @write_queue.push(:stop_write_loop)
-        @write_loop_thread.join
-      end
-      @write_loop_thread = nil
-    end
-
-
-    def write_loop
-      data = nil
-      loop do
-        data = @write_queue.pop
-        break if data == :stop_write_loop
-        write_to_socket(data)
-      end
-    rescue Exception => ex
-      # requeue PUB and MPUB commands
-      if data =~ /^M?PUB/
-        debug "Requeueing to write_queue: #{data.inspect}"
-        @write_queue.push(data)
-      end
-      die(ex)
-    end
-
 
     # Waits for death of connection
     def start_monitoring_connection
@@ -307,7 +294,6 @@ module Nsq
       @connection_monitor_thread.kill if @connection_monitor_thread
       @connection_monitor = nil
     end
-
 
     def monitor_connection
       loop do
@@ -344,8 +330,7 @@ module Nsq
       identify
       upgrade_to_ssl_socket if @tls_v1
 
-      start_read_loop
-      start_write_loop
+      start_read_write_loop
       @connected = true
 
       # we need to re-subscribe if there's a topic specified
@@ -360,8 +345,7 @@ module Nsq
     # closes the connection and stops listening for messages
     def close_connection
       cls if connected?
-      stop_read_loop
-      stop_write_loop
+      stop_read_write_loop
       @socket.close if @socket
       @socket = nil
       @connected = false
