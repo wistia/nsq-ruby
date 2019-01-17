@@ -3,6 +3,7 @@ require 'socket'
 require 'openssl'
 require 'timeout'
 
+require_relative 'exceptions'
 require_relative 'frames/error'
 require_relative 'frames/message'
 require_relative 'frames/response'
@@ -58,6 +59,7 @@ module Nsq
 
       # for outgoing communication
       @write_queue = SelectableQueue.new(10000)
+      @transactions = []
 
       # For indicating that the connection has died.
       # We use a Queue so we don't have to poll. Used to communicate across
@@ -151,15 +153,21 @@ module Nsq
 
 
     def write(raw)
-      @write_queue.push(raw)
+      result = (raw =~ /^M?PUB/).nil? ? nil : SizedQueue.new(1)
+      @write_queue.push({
+        message: raw,
+        result: result,
+      })
+      if result
+        value = result.pop
+        raise value if value.is_a?(Exception)
+      end
     end
-
 
     def write_to_socket(raw)
       debug ">>> #{raw.inspect}"
       @socket.write(raw)
     end
-
 
     def identify
       hostname = Socket.gethostname
@@ -205,6 +213,7 @@ module Nsq
     def receive_frame(recv_method = :recv)
       # __send__ is used as it clashes with #send method of Socket
       if buffer = @socket.__send__(recv_method, 8)
+        raise EOFError if buffer.length == 0
         size, type = buffer.unpack('l>l>')
         size -= 4 # we want the size of the data part and type already took up 4 bytes
         data = @socket.recv(size)
@@ -254,17 +263,27 @@ module Nsq
           if ready.include?(@write_queue)
             data = @write_queue.pop
             if !data.nil?
-              write_to_socket(data)
+              @transactions.push(data[:result])
+              write_to_socket(data[:message])
             end
           end
 
           frame = receive_frame_nonblock
           if !frame.nil?
+            result = @transactions.pop
             if frame.is_a?(Response)
+              # If the producer is expecting a result
+              # signal everything went fine pushing any value
+              result.push(nil) if result
               handle_response(frame)
             elsif frame.is_a?(Error)
-              error "Error received: #{frame.data}"
+              if result
+                result.push(ErrorFrameException.new(frame.data))
+              else
+                error "Error received: #{frame.data}"
+              end
             elsif frame.is_a?(Message)
+              result.push(nil) if result
               debug "<<< #{frame.body}"
               if @max_attempts && frame.attempts > @max_attempts
                 fin(frame.id)
