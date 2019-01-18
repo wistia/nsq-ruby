@@ -213,7 +213,6 @@ module Nsq
 
     def receive_frame
       if buffer = @socket.read(8)
-        raise EOFError if buffer.length == 0
         size, type = buffer.unpack('l>l>')
         size -= 4 # we want the size of the data part and type already took up 4 bytes
         data = @socket.read(size)
