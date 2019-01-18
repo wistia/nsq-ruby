@@ -26,6 +26,10 @@ class SelectableQueue
     @read_io, @write_io = IO.pipe
   end
 
+  def empty?
+    @queue.empty?
+  end
+
   def push(o)
     @queue.push(o)
     # It doesn't matter what we write into the pipe, as long as it's one byte.

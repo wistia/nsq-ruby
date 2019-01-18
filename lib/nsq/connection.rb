@@ -28,6 +28,7 @@ module Nsq
     def initialize(opts = {})
       @host = opts[:host] || (raise ArgumentError, 'host is required')
       @port = opts[:port] || (raise ArgumentError, 'port is required')
+      @synchronous = opts[:synchronous] || false
       @queue = opts[:queue]
       @topic = opts[:topic]
       @channel = opts[:channel]
@@ -153,7 +154,7 @@ module Nsq
 
 
     def write(raw)
-      result = (raw =~ /^M?PUB/).nil? ? nil : SizedQueue.new(1)
+      result = @synchronous && (raw =~ /^M?PUB/) ? SizedQueue.new(1) : nil
       @write_queue.push({
         message: raw,
         result: result,
@@ -210,22 +211,16 @@ module Nsq
       end
     end
 
-    def receive_frame(recv_method = :recv)
-      # __send__ is used as it clashes with #send method of Socket
-      if buffer = @socket.__send__(recv_method, 8)
+    def receive_frame
+      if buffer = @socket.read(8)
         raise EOFError if buffer.length == 0
         size, type = buffer.unpack('l>l>')
         size -= 4 # we want the size of the data part and type already took up 4 bytes
-        data = @socket.recv(size)
+        data = @socket.read(size)
         frame_class = frame_class_for_type(type)
         return frame_class.new(data, self)
       end
     end
-
-    def receive_frame_nonblock
-      receive_frame(:recv_nonblock)
-    end
-
 
     FRAME_CLASSES = [Response, Error, Message]
     def frame_class_for_type(type)
@@ -251,8 +246,15 @@ module Nsq
 
 
     def stop_read_write_loop
-      @read_write_loop_thread.kill if @read_write_loop_thread
-      @read_write_loop_thread = nil
+      # if the loop has died because of a connection error, the thread is
+      # already stopped, otherwise we want to terminate the producer connection
+      # and a custom-made message is sent signaling to the loop to stop
+      # gracefully
+      if @read_write_loop_thread
+        @write_queue.push(message: :stop_loop) if @read_write_loop_thread.alive?
+        @read_write_loop_thread.join
+        @read_write_loop_thread = nil
+      end
     end
 
     def read_write_loop
@@ -260,16 +262,8 @@ module Nsq
         begin
           ready, _, _ = IO.select([@socket, @write_queue])
 
-          if ready.include?(@write_queue)
-            data = @write_queue.pop
-            if !data.nil?
-              @transactions.push(data[:result])
-              write_to_socket(data[:message])
-            end
-          end
-
-          frame = receive_frame_nonblock
-          if !frame.nil?
+          if ready.include?(@socket)
+            frame = receive_frame
             result = @transactions.pop
             if frame.is_a?(Response)
               # If the producer is expecting a result
@@ -293,6 +287,13 @@ module Nsq
             else
               raise 'No data from socket'
             end
+          end
+
+          if ready.include?(@write_queue)
+            data = @write_queue.pop
+            return if data[:message] == :stop_loop
+            @transactions.push(data[:result])
+            write_to_socket(data[:message])
           end
         rescue IO::WaitReadable
           retry
@@ -321,7 +322,7 @@ module Nsq
         warn "Died from: #{cause_of_death}"
 
         debug 'Reconnecting...'
-        reconnect
+        reconnect(cause_of_death)
         debug 'Reconnected!'
 
         # clear all death messages, since we're now reconnected.
@@ -333,13 +334,25 @@ module Nsq
 
     # close the connection if it's not already closed and try to reconnect
     # over and over until we succeed!
-    def reconnect
+    def reconnect(cause_of_death)
       close_connection
       with_retries do
+        # If a synchronous producer received messages during the reconnection
+        # period those messages must fail if they expect an acknowledgement
+        # Between each reconnection attempt, we ensure the `connection.write`
+        # are not blocked by returning the exception which lead to the initial
+        # disconnection.
+        push_error_pending_writes cause_of_death if @synchronous
         open_connection
       end
     end
 
+    def push_error_pending_writes cause_of_death
+      while !@write_queue.empty?
+        data = @write_queue.pop
+        data[:result].push(cause_of_death) if data[:result]
+      end
+    end
 
     def open_connection
       @socket = TCPSocket.new(@host, @port)

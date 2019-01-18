@@ -7,6 +7,7 @@ module Nsq
     def initialize(opts = {})
       @connections = {}
       @topic = opts[:topic]
+      @synchronous = opts[:synchronous] || false
       @discovery_interval = opts[:discovery_interval] || 60
       @ssl_context = opts[:ssl_context]
       @tls_options = opts[:tls_options]
@@ -22,10 +23,10 @@ module Nsq
 
       elsif opts[:nsqd]
         nsqds = [opts[:nsqd]].flatten
-        nsqds.each{|d| add_connection(d)}
+        nsqds.each{|d| add_connection(d, {synchronous: @synchronous})}
 
       else
-        add_connection('127.0.0.1:4150')
+        add_connection('127.0.0.1:4150', {synchronous: @synchronous})
       end
     end
 
