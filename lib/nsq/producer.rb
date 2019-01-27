@@ -12,6 +12,7 @@ module Nsq
       @ssl_context = opts[:ssl_context]
       @tls_options = opts[:tls_options]
       @tls_v1 = opts[:tls_v1]
+      @retry_attempts = opts[:retry_attempts] || 5
 
       nsqlookupds = []
       if opts[:nsqlookupd]
@@ -57,13 +58,32 @@ module Nsq
       # stringify the messages
       messages = raw_messages.map(&:to_s)
 
-      # get a suitable connection to write to
-      connection = connection_for_write
+      with_retries @retry_attempts do
+        # get a suitable connection to write to
+        connection = connection_for_write
 
-      if messages.length > 1
-        connection.mpub(topic, messages)
-      else
-        connection.pub(topic, messages.first)
+        if messages.length > 1
+          connection.mpub(topic, messages)
+        else
+          connection.pub(topic, messages.first)
+        end
+      end
+    end
+
+    def with_retries(attempts)
+      wait = 1.0
+      count = 0
+      begin
+        yield
+      rescue => e
+        if count < attempts
+          error "exception when publishing message, retrying in #{wait} seconds"
+          sleep(wait)
+          wait = wait * 2
+          count += 1
+          retry
+        end
+        raise e
       end
     end
 
