@@ -14,12 +14,12 @@ describe Nsq::Producer do
     end
 
     describe '#write' do
-      it 'shouldn\'t raise an error when nsqd is down' do
+      it 'should raise an error when nsqd is down' do
         @nsqd.stop
 
         expect{
           @producer.write('fail')
-        }.to raise_error(RuntimeError, "No data from socket")
+        }.to raise_error(Nsq::UnexpectedFrameError)
       end
     end
   end
