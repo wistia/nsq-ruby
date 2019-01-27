@@ -75,15 +75,15 @@ module Nsq
       count = 0
       begin
         yield
-      rescue => e
+      rescue => ex
         if count < attempts
-          error "exception when publishing message, retrying in #{wait} seconds"
+          error "exception when publishing message: #{ex}, retrying in #{wait} seconds…"
           sleep(wait)
           wait = wait * 2
           count += 1
           retry
         end
-        raise e
+        raise ex
       end
     end
 
