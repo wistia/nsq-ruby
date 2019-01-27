@@ -29,6 +29,7 @@ module Nsq
       @host = opts[:host] || (raise ArgumentError, 'host is required')
       @port = opts[:port] || (raise ArgumentError, 'port is required')
       @synchronous = opts[:synchronous] || false
+      @ok_timeout = opts[:ok_timeout] || 5
       @queue = opts[:queue]
       @topic = opts[:topic]
       @channel = opts[:channel]
@@ -160,7 +161,9 @@ module Nsq
         result: result,
       })
       if result
-        value = result.pop
+        value = Timeout::timeout @ok_timeout do
+          result.pop
+        end
         raise value if value.is_a?(Exception)
       end
     end
