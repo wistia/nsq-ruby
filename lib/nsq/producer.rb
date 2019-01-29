@@ -16,9 +16,9 @@ module Nsq
       @ssl_context = opts[:ssl_context]
       @tls_options = opts[:tls_options]
       @tls_v1 = opts[:tls_v1]
-      @retry_attempts = opts[:retry_attempts] || 10
+      @retry_attempts = opts[:retry_attempts] || 3
 
-      @ok_timeout = opts[:ok_timeout] || 5
+      @ok_timeout = opts[:ok_timeout] || 3
       @write_queue = SelectableQueue.new(10000)
 
       @response_queue = SelectableQueue.new(10000) if @synchronous
