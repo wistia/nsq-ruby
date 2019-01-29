@@ -20,7 +20,7 @@ module Nsq
         return block.call(attempts)
 
       rescue UnexpectedFrameError, ErrorFrameException, Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
-             Errno::ENETDOWN, Errno::ENETUNREACH, Errno::ETIMEDOUT, Timeout::Error => ex
+             Errno::ENETDOWN, Errno::ENETUNREACH, Errno::ETIMEDOUT, Timeout::Error, SocketError => ex
 
         raise ex if attempts >= max_attempts
 
