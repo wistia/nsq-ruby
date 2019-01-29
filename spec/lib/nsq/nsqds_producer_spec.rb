@@ -26,11 +26,9 @@ describe Nsq::Producer do
 
     before do
       @cluster = NsqCluster.new(nsqd_count: 2)
-      @producer = new_nsqds_producer(@cluster.nsqd, synchronous: true, retry_attempts: 1, ok_timeout: 1)
     end
 
     after do
-      @producer.terminate if @producer
       @cluster.destroy
     end
 
@@ -51,6 +49,13 @@ describe Nsq::Producer do
     end
 
     context 'failover strategy' do
+      before do
+        @producer = new_nsqds_producer(@cluster.nsqd, synchronous: true, retry_attempts: 1, ok_timeout: 1)
+      end
+      after do
+        @producer.terminate if @producer
+      end
+
       describe '#write' do
         it 'should send a message to the first nsqd' do
           @producer.write 'first'
@@ -67,7 +72,7 @@ describe Nsq::Producer do
 
         it 'should send a message to the first nsqd again if the second is down' do
           @cluster.nsqd[0].stop
-          sleep(5)
+
           @producer.write 'first'
           wait_for{message_count(@cluster.nsqd[1])==1}
           expect(message_count(@cluster.nsqd[1])).to eq(1)
@@ -78,10 +83,58 @@ describe Nsq::Producer do
           @cluster.nsqd[0].start
           @cluster.nsqd[1].stop
 
-          sleep(5)
           @producer.write 'third'
           wait_for{message_count(@cluster.nsqd[0])==1}
           expect(message_count(@cluster.nsqd[0])).to eq(1)
+        end
+      end
+    end
+
+    context 'round robin strategy' do
+      before do
+        @producer = new_nsqds_producer(@cluster.nsqd, synchronous: true, retry_attempts: 1, ok_timeout: 1, strategy: Nsq::NsqdsProducer::STRATEGY_ROUNDROBIN)
+      end
+      after do
+        @producer.terminate if @producer
+      end
+
+      describe '#write' do
+        it 'should distributes messages among nsqs' do
+          @producer.write 'first'
+          @producer.write 'second'
+
+          wait_for{message_count(@cluster.nsqd.first)==1}
+          expect(message_count(@cluster.nsqd.first)).to eq(1)
+
+          wait_for{message_count(@cluster.nsqd.last)==1}
+          expect(message_count(@cluster.nsqd.last)).to eq(1)
+        end
+
+        it 'should send twice to the same if one node is down' do
+          @cluster.nsqd.first.stop
+
+          @producer.write 'first'
+          @producer.write 'second'
+
+          wait_for{message_count(@cluster.nsqd.last)==2}
+          expect(message_count(@cluster.nsqd.last)).to eq(2)
+        end
+
+        it 'should start the round robin back once the node is back up' do
+          @cluster.nsqd.first.stop
+          @producer.write 'first'
+          @producer.write 'second'
+
+          @cluster.nsqd.first.start
+          sleep 0.5
+
+          @producer.write 'three'
+          @producer.write 'four'
+          wait_for{message_count(@cluster.nsqd.last)==3}
+          expect(message_count(@cluster.nsqd.last)).to eq(3)
+          wait_for{message_count(@cluster.nsqd.first)==1}
+          expect(message_count(@cluster.nsqd.first)).to eq(1)
+
         end
       end
     end
