@@ -37,19 +37,19 @@ module Nsq
     end
 
     def write(*raw_messages)
-      each_provider(:write, raw_messages)
+      each_provider(:write, *raw_messages)
     end
 
     def deferred_write(delay, *raw_messages)
-      each_provider(:deferred_write, delay, raw_messages)
+      each_provider(:deferred_write, delay, *raw_messages)
     end
 
     def deferred_write_to_topic(topic, delay, *raw_messages)
-      each_provider(:deferred_write_to_topic, topic, delay, raw_messages)
+      each_provider(:deferred_write_to_topic, topic, delay, *raw_messages)
     end
 
     def write_to_topic(topic, *raw_messages)
-      each_provider(:write_to_topic, topic, raw_messages)
+      each_provider(:write_to_topic, topic, *raw_messages)
     end
 
     protected
