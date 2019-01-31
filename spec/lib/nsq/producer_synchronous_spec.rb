@@ -40,7 +40,7 @@ describe Nsq::Producer do
       it 'shouldn\'t raise an error when nsqd is down' do
         @nsqd.stop
 
-        Thread.new { sleep 3 ; @nsqd.start }
+        Thread.new { sleep 1 ; @nsqd.start }
 
         expect{ @producer.write('fail') }.not_to raise_error
       end
