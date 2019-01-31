@@ -87,11 +87,6 @@ module Nsq
     end
 
 
-    def sub(topic, channel)
-      write "SUB #{topic} #{channel}\n"
-    end
-
-
     def rdy(count)
       write "RDY #{count}\n"
     end
@@ -142,6 +137,10 @@ module Nsq
 
 
     private
+
+    def sub(topic, channel)
+      write_to_socket "SUB #{topic} #{channel}\n"
+    end
 
     def cls
       write "CLS\n"
@@ -352,15 +351,18 @@ module Nsq
       identify
       upgrade_to_ssl_socket if @tls_v1
 
-      start_read_write_loop
       @connected = true
 
       # we need to re-subscribe if there's a topic specified
       if @topic
         debug "Subscribing to #{@topic}"
         sub(@topic, @channel)
+        frame = receive_frame
+        raise ErrorFrameException(frame.data) if frame.is_a?(Error)
         re_up_ready
       end
+
+      start_read_write_loop
     end
 
 

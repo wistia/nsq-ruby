@@ -11,7 +11,7 @@ module Nsq
 
     def message
       if @frame
-        return "unexpected frame value #{frame}"
+        return "unexpected frame value #{frame.data}"
       end
       return 'empty frame from socket'
     end
