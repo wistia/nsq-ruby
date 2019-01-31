@@ -65,13 +65,28 @@ consumer.terminate
 
 The Nsq::Producer constructor takes the following options:
 
-| Option        | Description                            | Default            |
-|---------------|----------------------------------------|--------------------|
-| `topic`       | Topic to which to publish messages     |                    |
-| `nsqd`        | Host and port of the nsqd instance     | '127.0.0.1:4150'   |
-| `nsqlookupd`  | Use lookupd to auto discover nsqds     |                    |
-| `tls_v1`      | Flag for tls v1 connections            | false              |
-| `tls_options` | Optional keys+certs for TLS connections|                    |
+| Option         | Description                            | Default            |
+|----------------|----------------------------------------|--------------------|
+| `topic`        | Topic to which to publish messages     |                    |
+| `nsqd`         | Host and port of the nsqd instance     | '127.0.0.1:4150'   |
+| `tls_v1`       | Flag for tls v1 connections            | false              |
+| `tls_options`  | Optional keys+certs for TLS connections|                    |
+| `synchronous`  | Wait for acknowledgement on publish    | false              |
+
+Following options are only taken into account if the producer is configured as
+synchronous:
+
+| Option           | Description                            | Default            |
+|------------------|----------------------------------------|--------------------|
+| `ok_timeout`     | Time to wait acknowledgement (secs)    | 3                  |
+| `retry_attempts` | Number of attempts to retry publishing | 3                  |
+|                  | before throwing an exception           |                    |
+
+
+**Note:** By default, producers are asynchronous, we don't wait for nsqd to
+acknowledge our writes. As a result, if the connection to nsqd fails, you can
+lose messages. This is acceptable for our use cases, mostly because we are
+sending messages to a local nsqd instance and failure is very rare.
 
 For example, if you'd like to publish messages to a single nsqd.
 
@@ -82,23 +97,15 @@ producer = Nsq::Producer.new(
 )
 ```
 
-Alternatively, you can use nsqlookupd to find all nsqd nodes in the cluster.
-When you instantiate Nsq::Producer in this way, it will automatically maintain
-connections to all nsqd instances. When you publish a message, it will be sent
-to a random nsqd instance.
-
-```Ruby
-producer = Nsq::Producer.new(
-  nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
-  topic: 'topic-of-great-esteem'
-)
-```
+> A producer should is connecting to one single NSQd instance and can't find
+> topic through nsqlookupd. This behavior is the one expected by the NSQ maintainers:
+> [https://github.com/nsqio/nsq/issues/159](https://github.com/nsqio/nsq/issues/159)
 
 If you need to connect using SSL/TLS Authentication via `tls_options`
 
 ```Ruby
 producer = Nsq::Producer.new(
-  nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
+  nsqd:  '6.7.8.9:4150',
   topic: 'topic-of-great-esteem',
   tls_v1: true,
   tls_options: {
@@ -114,7 +121,7 @@ If you need to connect using simple `tls_v1`
 
 ```Ruby
 producer = Nsq::Producer.new(
-  nsqlookupd: ['1.2.3.4:4161', '6.7.8.9:4161'],
+  nsqd:  '6.7.8.9:4150',
   topic: 'topic-of-great-esteem',
   tls_v1: true
 )
@@ -143,12 +150,6 @@ and transmitted after reconnecting.
 producing messages faster than we're able to send them to nsqd or nsqd is
 offline for an extended period and you accumulate 10,000 messages in the queue,
 calls to `#write` will block until there's room in the queue.
-
-**Note:** We don't wait for nsqd to acknowledge our writes. As a result, if the
-connection to nsqd fails, you can lose messages. This is acceptable for our use
-cases, mostly because we are sending messages to a local nsqd instance and
-failure is very rare.
-
 
 ### `#write_to_topic`
 
@@ -184,7 +185,23 @@ these messages to be lost. After you write your last message, consider sleeping
 for a second before you call `#terminate`.
 
 
+### NsqdsProducer
 
+This producer aims at producing to multiple nsqd instances. Either to distribute
+the messages or to behave as a failover, when an nsqd instance is down.
+
+Its attributes are based on the `Producer` class except that it doesn't have `:nsqd`,
+and it has the additional parameters:
+
+**Note:** if the producer is not synchronous, the failover `:strategy` won't behave
+correctly. As `write` would never fail.
+
+| Option         | Description                            | Default              |
+|----------------|----------------------------------------|----------------------|
+| `strategy`     | Can be `:failover` or `:roundrobin`    | `:failover`          |
+| `nsqds`        | Array of host and port of the nsqds    | `['127.0.0.1:4150']` |
+
+The methods are simillar to the `Producer` class.
 
 ## Consumer
 
