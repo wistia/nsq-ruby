@@ -43,6 +43,8 @@ module Nsq
             # We can't connect to any nsqlookupds. That's okay, we'll just
             # leave our current nsqd connections alone and try again later.
             warn 'Could not connect to any nsqlookupd instances in discovery loop'
+          rescue StandardError => e
+            
           end
           sleep opts[:interval]
         end
@@ -63,24 +65,34 @@ module Nsq
 
 
     def drop_and_add_connections(nsqds)
+      has_connections_changed = false
+      @connections.each_pair {|k, nsqd|
+        unless nsqd.connected?
+          drop_connection(k, nsqd)
+          has_connections_changed = true
+        end
+
+      }
       # drop nsqd connections that are no longer in lookupd
       missing_nsqds = @connections.keys - nsqds
       missing_nsqds.each do |nsqd|
         drop_connection(nsqd)
+        has_connections_changed = true
       end
 
       # add new ones
       new_nsqds = nsqds - @connections.keys
       new_nsqds.each do |nsqd|
         begin
-          add_connection(nsqd)
-        rescue Exception => ex
+          add_connection(nsqd, connected_through_lookupd: true)
+          has_connections_changed = true
+        rescue StandardError => ex
           error "Failed to connect to nsqd @ #{nsqd}: #{ex}"
         end
       end
 
       # balance RDY state amongst the connections
-      connections_changed
+      connections_changed if has_connections_changed
     end
 
 
@@ -98,10 +110,19 @@ module Nsq
     end
 
 
-    def drop_connection(nsqd)
+    def drop_connection(nsqd, instance)
       info "- Dropping connection #{nsqd}"
-      connection = @connections.delete(nsqd)
-      connection.close if connection
+      if instance
+        instance.close
+        connection = @connections.delete(nsqd)
+        if connection != instance
+          connection.close if connection
+        end
+      else
+        connection = @connections.delete(nsqd)
+        connection.close if connection
+      end
+      
       connections_changed
     end
 
