@@ -100,7 +100,6 @@ module Nsq
         end
       rescue StandardError => e
         error "Error during discovery for #{lookupd}: #{e}"
-        puts e.message
         nil
       end
     end
