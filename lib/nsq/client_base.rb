@@ -110,7 +110,7 @@ module Nsq
     end
 
 
-    def drop_connection(nsqd, instance)
+    def drop_connection(nsqd, instance = nil)
       info "- Dropping connection #{nsqd}"
       if instance
         instance.close
