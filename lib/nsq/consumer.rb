@@ -15,7 +15,7 @@ module Nsq
       @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
       @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
       @max_in_flight = opts[:max_in_flight] || 1
-      @discovery_interval = opts[:discovery_interval] || 15
+      @discovery_interval = opts[:discovery_interval] || 60
       @msg_timeout = opts[:msg_timeout]
       @max_attempts = opts[:max_attempts]
       @ssl_context = opts[:ssl_context]

@@ -240,7 +240,7 @@ module Nsq
               sleep 0.01
               retry
             else
-              raise "timeout"
+              raise Errno::ECONNREFUSED
             end
           end
         end
@@ -249,7 +249,7 @@ module Nsq
           sleep 0.01
           retry
         else
-          raise "timeout"
+          raise Errno::ECONNREFUSED
         end
       end
     end
