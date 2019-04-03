@@ -170,7 +170,7 @@ module Nsq
       debug ">>> #{raw.inspect}"
       begin
         @socket.write_nonblock(raw)
-      rescue Errno::EWOULDBLOCK
+      rescue Errno::EWOULDBLOCK, OpenSSL::SSL::SSLErrorWaitWritable
         if connected?
           sleep 0.01
           retry
@@ -235,7 +235,7 @@ module Nsq
             data = @socket.read_nonblock(size)
             frame_class = frame_class_for_type(type)
             return frame_class.new(data, self)
-          rescue Errno::EWOULDBLOCK
+          rescue Errno::EWOULDBLOCK, OpenSSL::SSL::SSLErrorWaitReadable
             if break_after.nil? || break_after > Time.now
               sleep 0.01
               retry
@@ -244,7 +244,7 @@ module Nsq
             end
           end
         end
-      rescue Errno::EWOULDBLOCK
+      rescue Errno::EWOULDBLOCK, OpenSSL::SSL::SSLErrorWaitReadable
         if break_after.nil? || break_after > Time.now
           sleep 0.01
           retry
