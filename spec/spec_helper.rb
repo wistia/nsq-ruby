@@ -71,6 +71,14 @@ def new_producer(nsqd, opts = {})
   }.merge(opts))
 end
 
+def new_nsqds_producer(nsqds, opts = {})
+  Nsq::NsqdsProducer.new({
+    topic: TOPIC,
+    nsqds: nsqds.map{ |n| "#{n.host}:#{n.tcp_port}" },
+    discovery_interval: 1
+  }.merge(opts))
+end
+
 def new_lookupd_producer(opts = {})
   lookupd = @cluster.nsqlookupd.map{|l| "#{l.host}:#{l.http_port}"}
   Nsq::Producer.new({
