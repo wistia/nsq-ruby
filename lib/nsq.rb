@@ -11,3 +11,4 @@ require_relative 'nsq/frames/message'
 
 require_relative 'nsq/consumer'
 require_relative 'nsq/producer'
+require_relative 'nsq/nsqds_producer'
