@@ -3,9 +3,12 @@ require 'socket'
 require 'openssl'
 require 'timeout'
 
+require_relative 'retry'
+require_relative 'exceptions'
 require_relative 'frames/error'
 require_relative 'frames/message'
 require_relative 'frames/response'
+require_relative 'selectable_queue'
 require_relative 'logger'
 
 module Nsq
@@ -26,6 +29,7 @@ module Nsq
     def initialize(opts = {})
       @host = opts[:host] || (raise ArgumentError, 'host is required')
       @port = opts[:port] || (raise ArgumentError, 'port is required')
+      @response_queue = opts[:response_queue]
       @queue = opts[:queue]
       @topic = opts[:topic]
       @channel = opts[:channel]
@@ -56,14 +60,15 @@ module Nsq
       end
 
       # for outgoing communication
-      @write_queue = SizedQueue.new(10000)
+      @write_queue = SelectableQueue.new(10000)
 
       # For indicating that the connection has died.
       # We use a Queue so we don't have to poll. Used to communicate across
-      # threads (from write_loop and read_loop to connect_and_monitor).
+      # threads (from read_write_loop to connect_and_monitor).
       @death_queue = Queue.new
 
       @connected = false
+      @paused = false
       @presumed_in_flight = 0
 
       open_connection
@@ -75,6 +80,21 @@ module Nsq
       @connected
     end
 
+    def paused?
+      @paused
+    end
+
+    def pause
+      return if paused?
+      rdy(0)
+      @paused = true
+    end
+
+    def resume
+      return if !paused?
+      rdy(@max_in_flight)
+      @paused = false
+    end
 
     # close the connection and don't try to re-open it
     def close
@@ -150,15 +170,13 @@ module Nsq
 
 
     def write(raw)
-      @write_queue.push(raw)
+      @write_queue.push(message: raw)
     end
-
 
     def write_to_socket(raw)
       debug ">>> #{raw.inspect}"
       @socket.write(raw)
     end
-
 
     def identify
       hostname = Socket.gethostname
@@ -195,12 +213,20 @@ module Nsq
         debug 'Received heartbeat'
         nop
       elsif frame.data == RESPONSE_OK
+        @response_queue.push(frame) if @response_queue
         debug 'Received OK'
       else
         die "Received response we don't know how to handle: #{frame.data}"
       end
     end
 
+    def handle_error(frame)
+      if @response_queue
+        @response_queue.push(frame)
+      else
+        error "Error received: #{frame.data}"
+      end
+    end
 
     def receive_frame
       if buffer = @socket.read(8)
@@ -211,7 +237,6 @@ module Nsq
         return frame_class.new(data, self)
       end
     end
-
 
     FRAME_CLASSES = [Response, Error, Message]
     def frame_class_for_type(type)
@@ -231,70 +256,58 @@ module Nsq
     end
 
 
-    def start_read_loop
-      @read_loop_thread ||= Thread.new{read_loop}
+    def start_read_write_loop
+      @read_write_loop_thread ||= Thread.new{read_write_loop}
     end
 
 
-    def stop_read_loop
-      @read_loop_thread.kill if @read_loop_thread
-      @read_loop_thread = nil
+    def stop_read_write_loop
+      # if the loop has died because of a connection error, the thread is
+      # already stopped, otherwise we want to terminate the producer connection
+      # and a custom-made message is sent signaling to the loop to stop
+      # gracefully
+      if @read_write_loop_thread
+        @write_queue.push(message: :stop_loop) if @read_write_loop_thread.alive?
+        @read_write_loop_thread.join
+        @read_write_loop_thread = nil
+      end
     end
 
-
-    def read_loop
+    def read_write_loop
       loop do
-        frame = receive_frame
-        if frame.is_a?(Response)
-          handle_response(frame)
-        elsif frame.is_a?(Error)
-          error "Error received: #{frame.data}"
-        elsif frame.is_a?(Message)
-          debug "<<< #{frame.body}"
-          if @max_attempts && frame.attempts > @max_attempts
-            fin(frame.id)
-          else
-            @queue.push(frame) if @queue
+        begin
+          ready, _, _ = IO.select([@socket, @write_queue])
+
+          if ready.include?(@socket)
+            frame = receive_frame
+            if frame.is_a?(Response)
+              handle_response(frame)
+            elsif frame.is_a?(Error)
+              handle_error(frame)
+            elsif frame.is_a?(Message)
+              debug "<<< #{frame.body}"
+              if @max_attempts && frame.attempts > @max_attempts
+                fin(frame.id)
+              else
+                @queue.push(frame) if @queue
+              end
+            else
+              die(UnexpectedFrameError.new(frame))
+            end
           end
-        else
-          raise 'No data from socket'
+
+          if ready.include?(@write_queue)
+            data = @write_queue.pop
+            return if data[:message] == :stop_loop
+            write_to_socket(data[:message])
+          end
+        rescue IO::WaitReadable
+          retry
         end
       end
     rescue Exception => ex
       die(ex)
     end
-
-
-    def start_write_loop
-      @write_loop_thread ||= Thread.new{write_loop}
-    end
-
-
-    def stop_write_loop
-      if @write_loop_thread
-        @write_queue.push(:stop_write_loop)
-        @write_loop_thread.join
-      end
-      @write_loop_thread = nil
-    end
-
-
-    def write_loop
-      data = nil
-      loop do
-        data = @write_queue.pop
-        break if data == :stop_write_loop
-        write_to_socket(data)
-      end
-    rescue Exception => ex
-      # requeue PUB and MPUB commands
-      if data =~ /^M?PUB/
-        debug "Requeueing to write_queue: #{data.inspect}"
-        @write_queue.push(data)
-      end
-      die(ex)
-    end
-
 
     # Waits for death of connection
     def start_monitoring_connection
@@ -308,7 +321,6 @@ module Nsq
       @connection_monitor = nil
     end
 
-
     def monitor_connection
       loop do
         # wait for death, hopefully it never comes
@@ -316,7 +328,7 @@ module Nsq
         warn "Died from: #{cause_of_death}"
 
         debug 'Reconnecting...'
-        reconnect
+        reconnect(cause_of_death)
         debug 'Reconnected!'
 
         # clear all death messages, since we're now reconnected.
@@ -328,13 +340,25 @@ module Nsq
 
     # close the connection if it's not already closed and try to reconnect
     # over and over until we succeed!
-    def reconnect
+    def reconnect(cause_of_death)
       close_connection
-      with_retries do
+      Nsq::with_retries do
+        # If a synchronous producer received messages during the reconnection
+        # period those messages must fail if they expect an acknowledgement
+        # Between each reconnection attempt, we ensure the `connection.write`
+        # are not blocked by returning the exception which lead to the initial
+        # disconnection.
+        push_error_pending_writes cause_of_death if @response_queue
         open_connection
       end
     end
 
+    def push_error_pending_writes cause_of_death
+      while !@write_queue.empty?
+        data = @write_queue.pop
+        @response_queue.push(cause_of_death) if @response_queue
+      end
+    end
 
     def open_connection
       @socket = TCPSocket.new(@host, @port)
@@ -344,8 +368,7 @@ module Nsq
       identify
       upgrade_to_ssl_socket if @tls_v1
 
-      start_read_loop
-      start_write_loop
+      start_read_write_loop
       @connected = true
 
       # we need to re-subscribe if there's a topic specified
@@ -360,8 +383,7 @@ module Nsq
     # closes the connection and stops listening for messages
     def close_connection
       cls if connected?
-      stop_read_loop
-      stop_write_loop
+      stop_read_write_loop
       @socket.close if @socket
       @socket = nil
       @connected = false
@@ -396,50 +418,6 @@ module Nsq
       context.verify_mode = @tls_options[:verify_mode] || OpenSSL::SSL::VERIFY_NONE
       context
     end
-
-
-    # Retry the supplied block with exponential backoff.
-    #
-    # Borrowed liberally from:
-    # https://github.com/ooyala/retries/blob/master/lib/retries.rb
-    def with_retries(&block)
-      base_sleep_seconds = 0.5
-      max_sleep_seconds = 300 # 5 minutes
-
-      # Let's do this thing
-      attempts = 0
-
-      begin
-        attempts += 1
-        return block.call(attempts)
-
-      rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
-             Errno::ENETDOWN, Errno::ENETUNREACH, Errno::ETIMEDOUT, Timeout::Error => ex
-
-        raise ex if attempts >= 100
-
-        # The sleep time is an exponentially-increasing function of base_sleep_seconds.
-        # But, it never exceeds max_sleep_seconds.
-        sleep_seconds = [base_sleep_seconds * (2 ** (attempts - 1)), max_sleep_seconds].min
-        # Randomize to a random value in the range sleep_seconds/2 .. sleep_seconds
-        sleep_seconds = sleep_seconds * (0.5 * (1 + rand()))
-        # But never sleep less than base_sleep_seconds
-        sleep_seconds = [base_sleep_seconds, sleep_seconds].max
-
-        warn "Failed to connect: #{ex}. Retrying in #{sleep_seconds.round(1)} seconds."
-
-        snooze(sleep_seconds)
-
-        retry
-      end
-    end
-
-
-    # Se we can stub for testing and reconnect in a tight loop
-    def snooze(t)
-      sleep(t)
-    end
-
 
     def server_needs_rdy_re_ups?
       # versions less than 0.3.0 need RDY re-ups

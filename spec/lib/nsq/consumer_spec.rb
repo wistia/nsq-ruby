@@ -46,6 +46,29 @@ describe Nsq::Consumer do
       end
     end
 
+    describe '#pause' do
+      it 'should not receive any message when paused' do
+        @consumer.pause
+        @nsqd.pub(@consumer.topic, 'some-message')
+        assert_timeout(1) do
+          @consumer.pop
+        end
+      end
+    end
+
+    describe '#resume' do
+      it 'should get back messages when paused consumer is resumed' do
+        @consumer.pause
+        @nsqd.pub(@consumer.topic, 'some-message')
+        Thread.new {
+          sleep 0.5
+          @consumer.resume
+        }
+        assert_no_timeout(1) do
+          @consumer.pop
+        end
+      end
+    end
 
     describe '#pop' do
       it 'can pop off a message' do

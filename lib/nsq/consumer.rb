@@ -43,6 +43,13 @@ module Nsq
       end
     end
 
+    def pause
+      @connections.values.each(&:pause)
+    end
+
+    def resume
+      @connections.values.each(&:resume)
+    end
 
     # pop the next message off the queue
     def pop
