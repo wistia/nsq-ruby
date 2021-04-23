@@ -27,7 +27,7 @@ module Nsq
 
       # This is where we keep a record of our active nsqd connections
       # The key is a string with the host and port of the instance (e.g.
-      # '127.0.0.1:4150') and the key is the Connection instance.
+      # '127.0.0.1:4150') and the value is the Connection instance.
       @connections = {}
 
       if !@nsqlookupds.empty?
