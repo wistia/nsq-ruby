@@ -1,0 +1,10 @@
+# this file exists to generate techdocs for Backstage (https://backstage.wistia.cloud)
+
+site_name: nsq-ruby
+docs_dir: .
+plugins:
+  - techdocs-core
+  - same-dir
+  - exclude:
+      glob:
+        - node_modules/*
