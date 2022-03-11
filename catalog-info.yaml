@@ -8,11 +8,11 @@ metadata:
   annotations:
     github.com/project-slug: wistia/nsq-ruby
     backstage.io/techdocs-ref: dir:.
-  spec:
-    type: library
-    owner: infrastructure
-    lifecycle: production
-    system: VMA
   tags:
     - lang#ruby
     - pkg#rubygem
+spec:
+  type: library
+  owner: infrastructure
+  lifecycle: production
+  system: VMA
