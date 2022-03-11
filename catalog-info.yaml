@@ -1,0 +1,18 @@
+# this is a catalog entity descriptor file for our Backstage instance (https://backstage.wistia.cloud)
+
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: nsq-ruby
+  description: A worker framework for processing messages from an NSQ topic and channel.
+  annotations:
+    github.com/project-slug: wistia/nsq-ruby
+    backstage.io/techdocs-ref: dir:.
+  spec:
+    type: library
+    owner: infrastructure
+    lifecycle: production
+    system: VMA
+  tags:
+    - lang#ruby
+    - pkg#rubygem
