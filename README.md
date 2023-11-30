@@ -17,7 +17,7 @@ nsq-ruby is a simple NSQ client library written in Ruby.
 ```Ruby
 require 'nsq'
 producer = Nsq::Producer.new(
-  nsqd: '127.0.0.1:4150', # OR ['127.0.0.1:4150']
+  nsqd: '127.0.0.1:4150', # or ['127.0.0.1:4150']
   topic: 'some-topic'
 )
 
