@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "nsq-ruby".freeze
-  s.version = "2.3.1"
+  s.version = File.read('VERSION')
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
