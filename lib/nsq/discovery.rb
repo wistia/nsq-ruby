@@ -65,8 +65,8 @@ module Nsq
     # If there's an error, return nil
     def get_nsqds(lookupd, topic = nil)
       uri_scheme = 'http://' unless lookupd.match(%r(https?://))
-      uri = URI.parse("#{uri_scheme}#{lookupd}")
-
+      uri = URI("#{uri_scheme}#{lookupd}")
+      
       uri.query = "ts=#{Time.now.to_i}"
       if topic
         uri.path = '/lookup'
@@ -76,19 +76,29 @@ module Nsq
       end
 
       begin
-        body = Net::HTTP.get(uri)
-        data = JSON.parse(body)
-        producers = data['producers'] || # v1.0.0-compat
-                      (data['data'] && data['data']['producers'])
+        
+        Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https') do |client|
+          client.open_timeout = 10
+          client.read_timeout = 10
+          response = client.get(uri.path + "?" + uri.query)
+          if response.code == "200"
+            body = response.body
+            data = JSON.parse(body)
+            producers = data['producers'] || # v1.0.0-compat
+                          (data['data'] && data['data']['producers'])
 
-        if producers
-          producers.map do |producer|
-            "#{producer['broadcast_address']}:#{producer['tcp_port']}"
+            if producers
+              producers.map do |producer|
+                "#{producer['broadcast_address']}:#{producer['tcp_port']}"
+              end
+            else
+              []
+            end
+          else
+            []
           end
-        else
-          []
         end
-      rescue Exception => e
+      rescue StandardError => e
         error "Error during discovery for #{lookupd}: #{e}"
         nil
       end
