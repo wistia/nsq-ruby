@@ -123,6 +123,34 @@ describe Nsq::Connection do
     end
   end
 
+  describe '#pause' do
+    it 'should send rdy(0)' do
+      expect(@connection).to receive(:rdy).with(0)
+      @connection.pause
+      expect(@connection.paused?).to eq(true)
+    end
+
+    it 'should be a no-op' do
+      expect(@connection).to receive(:rdy).with(0).exactly(1).times
+      @connection.pause
+      @connection.pause
+    end
+  end
+
+  describe '#resume' do
+    it 'should set back the rdy value to the max_in_flight' do
+      @connection.pause
+      expect(@connection).to receive(:rdy).with(@connection.max_in_flight)
+      @connection.resume
+      expect(@connection.paused?).to eq(false)
+    end
+
+    it 'should be a no-op if not paused' do
+      expect(@connection).not_to receive(:rdy)
+      @connection.resume
+    end
+  end
+
 
   # This is really testing the ability for Connection to reconnect
   describe '#connected?' do
