@@ -10,26 +10,6 @@ end
 
 require 'rake'
 
-###########
-# Jeweler #
-###########
-require 'jeweler'
-require_relative 'lib/version'
-Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://guides.rubygems.org/specification-reference/ for more options
-  gem.name = "nsq-ruby"
-  gem.version = Nsq::Version::STRING
-  gem.homepage = "http://github.com/wistia/nsq-ruby"
-  gem.license = "MIT"
-  gem.summary = %Q{Ruby client library for NSQ}
-  gem.description = %Q{}
-  gem.email = "dev@wistia.com"
-  gem.authors = ["Wistia"]
-  gem.files = Dir.glob('lib/**/*.rb') + ['README.md']
-  # dependencies defined in Gemfile
-end
-Jeweler::RubygemsDotOrgTasks.new
-
 #########
 # Rspec #
 #########
