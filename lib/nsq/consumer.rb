@@ -36,10 +36,14 @@ module Nsq
           topic: @topic,
           interval: @discovery_interval
         )
+
+      elsif opts[:nsqd]
+        nsqds = [opts[:nsqd]].flatten
+        max_per_conn = max_in_flight_per_connection(nsqds.size)
+        nsqds.each{|d| add_connection(d, max_in_flight: max_per_conn)}
+
       else
-        # normally, we find nsqd instances to connect to via nsqlookupd(s)
-        # in this case let's connect to an nsqd instance directly
-        add_connection(opts[:nsqd] || '127.0.0.1:4150', max_in_flight: @max_in_flight)
+        add_connection('127.0.0.1:4150', max_in_flight: @max_in_flight)
       end
     end
 

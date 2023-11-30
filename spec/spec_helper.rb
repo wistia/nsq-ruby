@@ -66,7 +66,7 @@ end
 def new_producer(nsqd, opts = {})
   Nsq::Producer.new({
     topic: TOPIC,
-    nsqd: "#{nsqd.host}:#{nsqd.tcp_port}",
+    nsqd: ["#{nsqd.host}:#{nsqd.tcp_port}"],
     discovery_interval: 1
   }.merge(opts))
 end
