@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.4.0
+
+* Remove jeweler gem in favor of using a dynamic gemspec [#66](https://github.com/wistia/nsq-ruby/pull/66)
+* Use `URI.encode_www_form_component` instead of `URI.escape` to ensure compatibility with Ruby 3.0+ and fix deprecation warnings in Ruby 2.7. [#65](https://github.com/wistia/nsq-ruby/pull/65)
+* Update version of `nsq-cluster` used for tests [#66](https://github.com/wistia/nsq-ruby/pull/66)
+* Update TLS certificates used for tests [#66](https://github.com/wistia/nsq-ruby/pull/66)
+* GitHub Actions workflow for testing the gem against a matrix of Ruby versions (2.7, 3.0, 3.1, 3.2) introduced [#66](https://github.com/wistia/nsq-ruby/pull/66)
+* Support specifying multiple nsqd's when creating a consumer. [#54](https://github.com/wistia/nsq-ruby/pull/54)
+
 ## 2.3.1
 
 * Fix `max_attempts` bug (#46)
