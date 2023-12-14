@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.1
+
+* Client version connection string should also read from the VERSION file
+
 ## 2.4.0
 
 * Remove jeweler gem in favor of using a dynamic gemspec [#66](https://github.com/wistia/nsq-ruby/pull/66)

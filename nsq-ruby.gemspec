@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
     "LICENSE.txt",
     "README.md"
   ]
-  s.files = Dir.glob('lib/**/*.rb') + ['README.md']
+  s.files = Dir.glob('lib/**/*.rb') + ['README.md', 'VERSION']
   s.homepage = "http://github.com/wistia/nsq-ruby".freeze
   s.licenses = ["MIT".freeze]
   s.rubygems_version = "2.6.8".freeze
