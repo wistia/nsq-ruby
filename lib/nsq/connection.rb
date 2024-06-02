@@ -72,6 +72,7 @@ module Nsq
 
 
     def connected?
+      return @write_loop_thread.alive? && @connected if @write_loop_thread # for producers
       @connected
     end
 
