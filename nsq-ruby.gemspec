@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = "nsq-ruby".freeze
+  s.name = "nsq-ruby-client".freeze
   s.version = File.read('VERSION')
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
     "README.md"
   ]
   s.files = Dir.glob('lib/**/*.rb') + ['README.md', 'VERSION']
-  s.homepage = "http://github.com/wistia/nsq-ruby".freeze
+  s.homepage = "http://github.com/maluku-niaga/nsq-ruby-client".freeze
   s.licenses = ["MIT".freeze]
   s.rubygems_version = "2.6.8".freeze
   s.summary = "Ruby client library for NSQ".freeze

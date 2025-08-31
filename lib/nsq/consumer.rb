@@ -1,26 +1,23 @@
-require_relative 'client_base'
+require_relative 'client'
 
 module Nsq
-  class Consumer < ClientBase
+  class Consumer < Client
 
     attr_reader :max_in_flight
 
     def initialize(opts = {})
-      if opts[:nsqlookupd]
-        @nsqlookupds = [opts[:nsqlookupd]].flatten
-      else
-        @nsqlookupds = []
-      end
+      nsqlookupds = []
+      nsqlookupds = [opts[:nsqlookupd]].flatten if opts[:nsqlookupd]
 
-      @topic = opts[:topic] || raise(ArgumentError, 'topic is required')
-      @channel = opts[:channel] || raise(ArgumentError, 'channel is required')
-      @max_in_flight = opts[:max_in_flight] || 1
-      @discovery_interval = opts[:discovery_interval] || 60
-      @msg_timeout = opts[:msg_timeout]
-      @max_attempts = opts[:max_attempts]
-      @ssl_context = opts[:ssl_context]
-      @tls_options = opts[:tls_options]
-      @tls_v1 = opts[:tls_v1]
+      topic = opts[:topic] || raise(ArgumentError, 'topic is required')
+      channel = opts[:channel] || raise(ArgumentError, 'channel is required')
+      max_in_flight = opts[:max_in_flight] || 1
+      discovery_interval = opts[:discovery_interval] || 60
+      msg_timeout = opts[:msg_timeout]
+      max_attempts = opts[:max_attempts]
+      ssl_context = opts[:ssl_context]
+      tls_options = opts[:tls_options]
+      tls_v1 = opts[:tls_v1]
 
       # This is where we queue up the messages we receive from each connection
       @messages = opts[:queue] || Queue.new
@@ -30,20 +27,33 @@ module Nsq
       # '127.0.0.1:4150') and the value is the Connection instance.
       @connections = {}
 
-      if !@nsqlookupds.empty?
+      opts = {
+        topic: topic,
+        channel: channel,
+        max_in_flight: max_in_flight,
+        msg_timeout: msg_timeout,
+        max_attempts: max_attempts,
+        ssl_context: ssl_context,
+        tls_options: tls_options,
+        tls_v1: tls_v1
+      }
+
+      if !nsqlookupds.empty?
         discover_repeatedly(
-          nsqlookupds: @nsqlookupds,
-          topic: @topic,
-          interval: @discovery_interval
+          opts.merge(
+            nsqlookupds: nsqlookupds,
+            interval: discovery_interval
+          )
         )
 
       elsif opts[:nsqd]
         nsqds = [opts[:nsqd]].flatten
-        max_per_conn = max_in_flight_per_connection(nsqds.size)
-        nsqds.each{|d| add_connection(d, max_in_flight: max_per_conn)}
+        opts[:max_in_flight] = max_in_flight_per_connection(max_in_flight, nsqds.size)
+
+        nsqds.each{|d| add_connection(d, opts)}
 
       else
-        add_connection('127.0.0.1:4150', max_in_flight: @max_in_flight)
+        add_connection('127.0.0.1:4150', opts)
       end
     end
 
@@ -74,20 +84,13 @@ module Nsq
 
 
     private
-    def add_connection(nsqd, options = {})
-      super(nsqd, {
-        topic: @topic,
-        channel: @channel,
-        queue: @messages,
-        msg_timeout: @msg_timeout,
-        max_in_flight: 1,
-        max_attempts: @max_attempts
-      }.merge(options))
+    def add_connection(nsqd, opts = {})
+      super(nsqd, {queue: @messages}.merge(opts))
     end
 
     # Be conservative, but don't set a connection's max_in_flight below 1
-    def max_in_flight_per_connection(number_of_connections = @connections.length)
-      [@max_in_flight / number_of_connections, 1].max
+    def max_in_flight_per_connection(max_in_flight, number_of_connections = @connections.length)
+      [max_in_flight / number_of_connections, 1].max
     end
 
     def connections_changed
@@ -96,7 +99,10 @@ module Nsq
 
     def redistribute_ready
       @connections.values.each do |connection|
-        connection.max_in_flight = max_in_flight_per_connection
+        max_in_flight = connection.max_in_flight
+        max_in_flight = max_in_flight_per_connection(max_in_flight) if max_in_flight > 1
+
+        connection.max_in_flight = max_in_flight
         connection.re_up_ready
       end
     end

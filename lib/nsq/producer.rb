@@ -1,7 +1,7 @@
-require_relative 'client_base'
+require_relative 'client'
 
 module Nsq
-  class Producer < ClientBase
+  class Producer < Client
     attr_reader :topic
 
     def initialize(opts = {})

@@ -70,7 +70,6 @@ module Nsq
       start_monitoring_connection
     end
 
-
     def connected?
       @connected
     end

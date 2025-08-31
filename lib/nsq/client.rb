@@ -3,7 +3,7 @@ require_relative 'connection'
 require_relative 'logger'
 
 module Nsq
-  class ClientBase
+  class Client
     include Nsq::AttributeLogger
     @@log_attributes = [:topic]
 
@@ -38,7 +38,7 @@ module Nsq
         loop do
           begin
             nsqds = nsqds_from_lookupd(opts[:topic])
-            drop_and_add_connections(nsqds)
+            drop_and_add_connections(nsqds, opts)
           rescue DiscoveryException
             # We can't connect to any nsqlookupds. That's okay, we'll just
             # leave our current nsqd connections alone and try again later.
@@ -62,7 +62,7 @@ module Nsq
     end
 
 
-    def drop_and_add_connections(nsqds)
+    def drop_and_add_connections(nsqds, opts = {})
       # drop nsqd connections that are no longer in lookupd
       missing_nsqds = @connections.keys - nsqds
       missing_nsqds.each do |nsqd|
@@ -73,7 +73,7 @@ module Nsq
       new_nsqds = nsqds - @connections.keys
       new_nsqds.each do |nsqd|
         begin
-          add_connection(nsqd)
+          add_connection(nsqd, opts)
         rescue Exception => ex
           error "Failed to connect to nsqd @ #{nsqd}: #{ex}"
         end
@@ -84,16 +84,13 @@ module Nsq
     end
 
 
-    def add_connection(nsqd, options = {})
+    def add_connection(nsqd, opts = {})
       info "+ Adding connection #{nsqd}"
       host, port = nsqd.split(':')
       connection = Connection.new({
         host: host,
         port: port,
-        ssl_context: @ssl_context,
-        tls_options: @tls_options,
-        tls_v1: @tls_v1
-      }.merge(options))
+      }.merge(opts))
       @connections[nsqd] = connection
     end
 
