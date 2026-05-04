@@ -16,7 +16,7 @@ jobs:
           mv nsq-1.2.1.linux-amd64.go1.16.6/bin/* /usr/local/bin
 
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - uses: ruby/setup-ruby@v1
         with:
