@@ -18,6 +18,8 @@ Gem::Specification.new do |s|
   s.rubygems_version = "2.6.8".freeze
   s.summary = "Ruby client library for NSQ".freeze
 
+  s.add_dependency(%q<logger>.freeze)
+
   s.add_development_dependency(%q<nsq-cluster>.freeze, ["~> 2.1"])
   s.add_development_dependency(%q<rspec>.freeze, ["~> 3.0"])
 end
