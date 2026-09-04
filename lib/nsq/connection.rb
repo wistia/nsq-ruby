@@ -33,6 +33,8 @@ module Nsq
       @max_in_flight = opts[:max_in_flight] || 1
       @tls_options = opts[:tls_options]
       @max_attempts = opts[:max_attempts]
+      @connected_through_lookupd = false
+      @last_heartbeat = nil
       if opts[:ssl_context]
         if @tls_options
           warn 'ssl_context and tls_options both set. Using tls_options. Ignoring ssl_context.'
@@ -55,6 +57,10 @@ module Nsq
         raise ArgumentError, 'msg_timeout cannot be less than 1000. it\'s in milliseconds.'
       end
 
+      if opts[:connected_through_lookupd]
+        @connected_through_lookupd = opts[:connected_through_lookupd]
+      end
+
       # for outgoing communication
       @write_queue = SizedQueue.new(10000)
 
@@ -70,11 +76,17 @@ module Nsq
       start_monitoring_connection
     end
 
-
     def connected?
-      @connected
+      if @connected
+        if !@last_heartbeat.nil? && @last_heartbeat > Time.now - 40
+          true
+        else
+          false
+        end
+      else
+        false
+      end
     end
-
 
     # close the connection and don't try to re-open it
     def close
@@ -156,7 +168,16 @@ module Nsq
 
     def write_to_socket(raw)
       debug ">>> #{raw.inspect}"
-      @socket.write(raw)
+      begin
+        @socket.write_nonblock(raw)
+      rescue Errno::EWOULDBLOCK, OpenSSL::SSL::SSLErrorWaitWritable
+        if connected?
+          sleep 0.01
+          retry
+        else
+          raise "timeout"
+        end
+      end
     end
 
 
@@ -179,9 +200,9 @@ module Nsq
       write_to_socket ["IDENTIFY\n", metadata.length, metadata].pack('a*l>a*')
 
       # Now wait for the response!
-      frame = receive_frame
+      frame = receive_frame(5)  # timeout after 5 seconds to avoid hung servers
       server = JSON.parse(frame.data)
-
+      @last_heartbeat = Time.now
       if @max_in_flight > server['max_rdy_count']
         raise "max_in_flight is set to #{@max_in_flight}, server only supports #{server['max_rdy_count']}"
       end
@@ -193,6 +214,7 @@ module Nsq
     def handle_response(frame)
       if frame.data == RESPONSE_HEARTBEAT
         debug 'Received heartbeat'
+        @last_heartbeat = Time.now
         nop
       elsif frame.data == RESPONSE_OK
         debug 'Received OK'
@@ -202,13 +224,33 @@ module Nsq
     end
 
 
-    def receive_frame
-      if buffer = @socket.read(8)
-        size, type = buffer.unpack('l>l>')
-        size -= 4 # we want the size of the data part and type already took up 4 bytes
-        data = @socket.read(size)
-        frame_class = frame_class_for_type(type)
-        return frame_class.new(data, self)
+    def receive_frame(max_receive_time = nil)
+      break_after = nil
+      break_after = Time.now + max_receive_time if max_receive_time
+      begin
+        if buffer = @socket.read_nonblock(8)
+          size, type = buffer.unpack('l>l>')
+          size -= 4 # we want the size of the data part and type already took up 4 bytes
+          begin
+            data = @socket.read_nonblock(size)
+            frame_class = frame_class_for_type(type)
+            return frame_class.new(data, self)
+          rescue Errno::EWOULDBLOCK, OpenSSL::SSL::SSLErrorWaitReadable
+            if break_after.nil? || break_after > Time.now
+              sleep 0.01
+              retry
+            else
+              raise Errno::ECONNREFUSED
+            end
+          end
+        end
+      rescue Errno::EWOULDBLOCK, OpenSSL::SSL::SSLErrorWaitReadable
+        if break_after.nil? || break_after > Time.now
+          sleep 0.01
+          retry
+        else
+          raise Errno::ECONNREFUSED
+        end
       end
     end
 
@@ -260,7 +302,7 @@ module Nsq
           raise 'No data from socket'
         end
       end
-    rescue Exception => ex
+    rescue StandardError => ex
       die(ex)
     end
 
@@ -286,7 +328,7 @@ module Nsq
         break if data == :stop_write_loop
         write_to_socket(data)
       end
-    rescue Exception => ex
+    rescue StandardError => ex
       # requeue PUB and MPUB commands
       if data =~ /^M?PUB/
         debug "Requeueing to write_queue: #{data.inspect}"
@@ -404,19 +446,18 @@ module Nsq
     # https://github.com/ooyala/retries/blob/master/lib/retries.rb
     def with_retries(&block)
       base_sleep_seconds = 0.5
-      max_sleep_seconds = 300 # 5 minutes
+      max_sleep_seconds = 30 # 30 seconds
 
       # Let's do this thing
       attempts = 0
-
+      max_attempts = @connected_through_lookupd ? 10 : 100
       begin
         attempts += 1
         return block.call(attempts)
 
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::EHOSTUNREACH,
              Errno::ENETDOWN, Errno::ENETUNREACH, Errno::ETIMEDOUT, Timeout::Error => ex
-
-        raise ex if attempts >= 100
+        raise ex if attempts >= max_attempts
 
         # The sleep time is an exponentially-increasing function of base_sleep_seconds.
         # But, it never exceeds max_sleep_seconds.
